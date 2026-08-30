@@ -15,8 +15,11 @@ CloudTrack follows ASP.NET Core's configuration precedence. Values in environmen
 - PostgreSQL connection strings containing credentials.
 - Azure service-principal credentials, publish profiles, certificates, or downloaded portal configuration.
 - `appsettings.Production.json`, `appsettings.Azure.json`, `appsettings.*.local.json`, or `.env` files.
+- Local Bicep parameter files such as `infra/local.parameters.json` or `*.bicepparam` when they contain values.
 
 The root `.gitignore` blocks these common files. CI also runs a repository secret scan. Before each commit, inspect staged changes with `git diff --cached`.
+
+Use `git check-ignore -v <path>` to confirm a local secret file is ignored. If a secret ever reaches Git history, deleting the file is not enough: revoke or rotate the credential first, then clean the history deliberately.
 
 ## Local backend setup
 
@@ -43,4 +46,3 @@ Set these as Container App or App Service environment variables, not source file
 | `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=false` | No |
 
 For a low-cost lab, sensitive values can start as secret application settings. Key Vault is a version-2 hardening step when its operational cost and complexity are justified.
-

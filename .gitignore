@@ -48,3 +48,4 @@ test-results/
 
 # Generated infrastructure output
 infra/*.json
+infra/*.bicepparam
