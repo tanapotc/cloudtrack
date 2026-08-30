@@ -86,7 +86,8 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append(
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; " +
-        "script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'");
+        "script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
+        "font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'");
     await next();
 });
 
