@@ -1,15 +1,20 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using CloudTrack.Application.Auth;
+using CloudTrack.Infrastructure.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 namespace CloudTrack.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(IAuthService authService, IWebHostEnvironment environment) : ControllerBase
+public sealed class AuthController(
+    IAuthService authService,
+    IWebHostEnvironment environment,
+    IOptions<JwtOptions> jwtOptions) : ControllerBase
 {
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
@@ -22,6 +27,7 @@ public sealed class AuthController(IAuthService authService, IWebHostEnvironment
         => Ok(ToResponse(await authService.LoginAsync(request, cancellationToken)));
 
     [HttpPost("refresh")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponse>> Refresh(RefreshRequest request, CancellationToken cancellationToken)
     {
         var token = request.RefreshToken ?? Request.Cookies["cloudtrack.refresh"];
@@ -43,7 +49,7 @@ public sealed class AuthController(IAuthService authService, IWebHostEnvironment
             await authService.RevokeAsync(token, cancellationToken);
         }
 
-        Response.Cookies.Delete("cloudtrack.refresh");
+        DeleteRefreshCookie();
         return NoContent();
     }
 
@@ -65,7 +71,7 @@ public sealed class AuthController(IAuthService authService, IWebHostEnvironment
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         await authService.ChangePasswordAsync(GetUserId(), request, cancellationToken);
-        Response.Cookies.Delete("cloudtrack.refresh");
+        DeleteRefreshCookie();
         return NoContent();
     }
 
@@ -81,11 +87,19 @@ public sealed class AuthController(IAuthService authService, IWebHostEnvironment
             HttpOnly = true,
             Secure = !environment.IsDevelopment(),
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            Expires = DateTimeOffset.UtcNow.AddDays(jwtOptions.Value.RefreshTokenDays),
             Path = "/api/auth",
         });
         return new AuthResponse(result.AccessToken, result.ExpiresAt, result.User);
     }
+
+    private void DeleteRefreshCookie() => Response.Cookies.Delete("cloudtrack.refresh", new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = !environment.IsDevelopment(),
+        SameSite = SameSiteMode.Strict,
+        Path = "/api/auth",
+    });
 
     private Guid GetUserId()
     {

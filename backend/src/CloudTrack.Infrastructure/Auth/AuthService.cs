@@ -119,6 +119,7 @@ public sealed class AuthService(
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         var stored = await dbContext.PasswordResetTokens.Include(x => x.User)
             .SingleOrDefaultAsync(x => x.TokenHash == HashToken(request.Token), cancellationToken);
         if (stored is null || stored.UsedAt is not null || stored.ExpiresAt <= DateTimeOffset.UtcNow)
@@ -130,10 +131,12 @@ public sealed class AuthService(
         stored.UsedAt = DateTimeOffset.UtcNow;
         await RevokeAllTokensAsync(stored.UserId, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         var user = await dbContext.Users.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new AppException(404, "User not found", "The current user no longer exists.");
         if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
@@ -144,6 +147,7 @@ public sealed class AuthService(
         user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
         await RevokeAllTokensAsync(user.Id, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task<UserSummary> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken)
@@ -190,8 +194,9 @@ public sealed class AuthService(
 
     private async Task RevokeAllTokensAsync(Guid userId, CancellationToken cancellationToken)
     {
+        var revokedAt = DateTimeOffset.UtcNow;
         await dbContext.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAt == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.RevokedAt, DateTimeOffset.UtcNow), cancellationToken);
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.RevokedAt, revokedAt), cancellationToken);
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
@@ -201,6 +206,6 @@ public sealed class AuthService(
         .Select(x => x.Permission.Name)
         .Distinct(StringComparer.Ordinal)
         .ToArray();
-    private static string CreateSecureToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    private static string CreateSecureToken() => Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(64));
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

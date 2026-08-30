@@ -24,6 +24,7 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Audience"] = "CloudTrack.Tests",
                 ["Jwt:SigningKey"] = "integration-test-signing-key-that-is-long-enough",
                 ["Auth:ExposeDevelopmentResetToken"] = "false",
+                ["RateLimiting:AuthPermitLimit"] = "100",
                 ["Cors:AllowedOrigins:0"] = "http://localhost",
                 ["Seed:AdminEmail"] = "admin@example.test",
                 ["Seed:AdminPassword"] = "IntegrationAdmin!234",
