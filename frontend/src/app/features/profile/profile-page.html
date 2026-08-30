@@ -1,0 +1,41 @@
+<div class="heading">
+  <span>ACCOUNT</span>
+  <h1>Profile & security</h1>
+  <p>Review your identity and keep your account protected.</p>
+</div>
+<section class="profile-card">
+  <div class="avatar">{{ initials() }}</div>
+  <div>
+    <h2>{{ auth.currentUser()?.displayName }}</h2>
+    <p>{{ auth.currentUser()?.email }}</p>
+    <div class="roles">
+      @for (role of auth.currentUser()?.roles; track role) {
+        <span>{{ role }}</span>
+      }
+    </div>
+  </div>
+</section>
+<section class="security">
+  <div>
+    <mat-icon>shield</mat-icon>
+    <h2>Change password</h2>
+    <p>Changing your password revokes every refresh token, including other devices.</p>
+  </div>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline"
+      ><mat-label>Current password</mat-label
+      ><input
+        matInput
+        type="password"
+        formControlName="currentPassword"
+        autocomplete="current-password" /></mat-form-field
+    ><mat-form-field appearance="outline"
+      ><mat-label>New password</mat-label
+      ><input matInput type="password" formControlName="newPassword" autocomplete="new-password"
+    /></mat-form-field>
+    @if (message()) {
+      <p class="message">{{ message() }}</p>
+    }
+    <button mat-flat-button type="submit" [disabled]="form.invalid">Update password</button>
+  </form>
+</section>

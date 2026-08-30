@@ -1,0 +1,78 @@
+<div class="page-heading">
+  <div>
+    <span>ADMINISTRATION</span>
+    <h1>{{ mode === 'users' ? 'User management' : 'Role management' }}</h1>
+    <p>
+      {{
+        mode === 'users'
+          ? 'Review access, roles, and account status.'
+          : 'Understand how responsibilities are divided across CloudTrack.'
+      }}
+    </p>
+  </div>
+</div>
+@if (loading()) {
+  <div class="state"><mat-spinner diameter="34" /></div>
+} @else if (forbidden()) {
+  <div class="state denied">
+    <mat-icon>lock</mat-icon>
+    <h2>Admin access required</h2>
+    <p>Your account is secure, but it does not have permission to view this workspace.</p>
+  </div>
+} @else if (error()) {
+  <div class="state">
+    <mat-icon>cloud_off</mat-icon>
+    <h2>Couldn’t load administration data</h2>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="load()">Try again</button>
+  </div>
+} @else if (mode === 'users') {
+  <div class="toolbar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      ><mat-icon matPrefix>search</mat-icon
+      ><input matInput [formControl]="search" placeholder="Search users" /></mat-form-field
+    ><span>{{ users().length }} accounts</span>
+  </div>
+  <section class="table">
+    <header><span>User</span><span>Role</span><span>Last active</span><span>Status</span></header>
+    @for (user of users(); track user.id) {
+      <article>
+        <div class="identity">
+          <i>{{ initials(user.displayName) }}</i>
+          <p>
+            <strong>{{ user.displayName }}</strong
+            ><small>{{ user.email }}</small>
+          </p>
+        </div>
+        <div class="roles">
+          @for (role of user.roles; track role) {
+            <b>{{ role }}</b>
+          }
+        </div>
+        <span class="muted">{{
+          user.lastLoginAt ? (user.lastLoginAt | date: 'MMM d, y') : 'Never'
+        }}</span
+        ><mat-slide-toggle [checked]="user.isActive" (change)="toggle(user, $event.checked)">{{
+          user.isActive ? 'Active' : 'Inactive'
+        }}</mat-slide-toggle>
+      </article>
+    }
+  </section>
+} @else {
+  <section class="role-grid">
+    @for (role of roles(); track role.id) {
+      <article>
+        <div class="role-icon">
+          <mat-icon>{{ roleIcon(role.name) }}</mat-icon>
+        </div>
+        <h2>{{ role.name }}</h2>
+        <p>{{ role.description }}</p>
+        <footer>
+          <span
+            ><strong>{{ role.userCount }}</strong> assigned users</span
+          ><span class="badge">System role</span>
+        </footer>
+      </article>
+    }
+  </section>
+}
