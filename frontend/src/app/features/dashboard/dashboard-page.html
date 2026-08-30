@@ -1,0 +1,17 @@
+<div class="page-heading"><div><span class="eyebrow">OVERVIEW</span><h1>Good {{ greeting() }}, {{ firstName() }}.</h1><p>Here’s what’s moving across your workspace today.</p></div><a mat-flat-button routerLink="/projects"><mat-icon>add</mat-icon>New project</a></div>
+@if (loading()) { <div class="state"><mat-spinner diameter="34" /><p>Preparing your workspace…</p></div> }
+@else if (error()) { <div class="state error"><mat-icon>cloud_off</mat-icon><h2>Dashboard unavailable</h2><p>{{ error() }}</p><button mat-stroked-button (click)="load()">Try again</button></div> }
+@else if (data(); as stats) {
+  <section class="metrics">
+    @for (card of metricCards(stats); track card.label) { <article><div class="metric-icon" [class]="card.tone"><mat-icon>{{ card.icon }}</mat-icon></div><div><span>{{ card.label }}</span><strong>{{ card.value }}</strong><small>{{ card.note }}</small></div></article> }
+  </section>
+  <section class="dashboard-grid">
+    <article class="panel progress-panel"><div class="panel-head"><div><h2>Workload pulse</h2><p>Open versus completed tasks</p></div><span class="health"><i></i>{{ stats.apiStatus }}</span></div>
+      <div class="chart"><div class="donut" [style.--done]="completion(stats) + '%'"><div><strong>{{ completion(stats) }}%</strong><span>complete</span></div></div><div class="legend"><span><i class="open"></i>Open tasks <strong>{{ stats.openTaskCount }}</strong></span><span><i class="done"></i>Completed <strong>{{ stats.completedTaskCount }}</strong></span><span><i class="due"></i>Due this week <strong>{{ stats.dueSoonCount }}</strong></span></div></div>
+    </article>
+    <article class="panel activity"><div class="panel-head"><div><h2>Recent activity</h2><p>Your latest workspace changes</p></div></div>
+      @if (stats.recentActivity.length) { <div class="activity-list">@for (item of stats.recentActivity; track item.occurredAt) { <div><span class="activity-icon"><mat-icon>{{ activityIcon(item.action) }}</mat-icon></span><p><strong>{{ humanize(item.action) }}</strong><small>{{ item.entityType }} · {{ item.occurredAt | date:'MMM d, h:mm a' }}</small></p></div> }</div> }
+      @else { <div class="empty"><mat-icon>history</mat-icon><p>Your recent actions will appear here.</p></div> }
+    </article>
+  </section>
+}
