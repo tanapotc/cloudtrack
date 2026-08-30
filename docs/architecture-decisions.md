@@ -12,7 +12,7 @@ The solution separates Domain, Application, Infrastructure, and API projects. Th
 
 CloudTrack runs on SQL Server in every environment: LocalDB for development, an ephemeral SQL Server 2022 container for CI, and Azure SQL serverless in production. An earlier iteration used SQLite for local and test runs, but keeping two providers meant integration tests never exercised the engine that production uses, hiding provider-specific behavior around transactions, retries, and concurrency. Integration and E2E suites now create a disposable database per run and drop it on teardown.
 
-The first learning release initializes the schema automatically. A mature production release should replace this with reviewed EF migrations executed by a controlled deployment step.
+Schema changes are versioned with EF Core migrations (`backend/src/CloudTrack.Infrastructure/Persistence/Migrations`). `DatabaseInitializer` calls `Database.Migrate()` on startup, so a deploy applies any pending migration before serving traffic and a failed migration stops the rollout. On Free F1 there is a single instance, so start-up migration is safe; a multi-instance production tier would move migration into a dedicated release step. `dotnet ef` is pinned as a local tool (`dotnet tool restore`), and CI fails if the model has drifted from the latest migration.
 
 ## ADR-004: Authentication model
 
@@ -55,4 +55,4 @@ Tables are grouped into purpose-named schemas instead of the SQL Server default 
 
 Every table also carries five audit columns through the `IAuditable` contract: `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`, and `IsActive`. `Entity` supplies them for keyed tables and `AuditableLink` supplies them for composite-key join tables. `AppDbContext.SaveChanges` stamps the timestamps and, using an `ICurrentUser` resolved from the request JWT, the actor ids. `CreatedBy` / `UpdatedBy` are plain nullable `Guid`s with no foreign key, so retiring a user never cascades into historical rows. `IsActive` is a soft-state flag only; there is no global query filter, so existing queries are unchanged until a caller opts in.
 
-Because the project initializes the schema with `EnsureCreated` rather than migrations (ADR-003), this change does not alter an existing database. Development and test databases are recreated automatically; a deployed database must be dropped and reseeded or altered by hand. Introducing EF migrations is the natural follow-up.
+This model shipped together with the switch to EF Core migrations (ADR-003), so a fresh database is built with the schemas and audit columns in place. The one database that predates migrations is the deployed Azure SQL database, which was created by the old `EnsureCreated` path with everything in `dbo`; it is dropped once so the `InitialCreate` migration can rebuild and reseed it. Every later change ships as its own migration.

@@ -95,7 +95,7 @@ The same `.ts` / `.html` / `.scss` convention is used by layouts, dashboard, pro
 | --- | --- |
 | Web | Angular 22, standalone components, Angular Material, signals |
 | API | ASP.NET Core 8, controllers, Problem Details, rate limiting |
-| Data | EF Core 8, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
+| Data | EF Core 8 with migrations, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
 | Quality | xUnit, ASP.NET integration tests, Vitest, Playwright, Prettier |
 | Delivery | App Service ZIP, GitHub Actions OIDC, Gitleaks, Azure Bicep; optional Docker |
@@ -107,15 +107,20 @@ Prerequisites: .NET SDK 8, Node.js 24, npm, and SQL Server. The default connecti
 
 ### 1. Configure the API safely
 
-Do not put a real key or password in `appsettings.json`. Store the local signing key outside Git with .NET user-secrets. EF Core creates the schema and seeds roles, permissions, and the admin account on first run:
+Do not put a real key or password in `appsettings.json`. Store the local signing key outside Git with .NET user-secrets. On startup the API applies any pending EF Core migration and seeds roles, permissions, and the admin account:
 
 ```powershell
+dotnet tool restore
 cd backend/src/CloudTrack.Api
 dotnet user-secrets set "Jwt:SigningKey" "replace-with-at-least-32-random-characters"
 dotnet run --urls http://localhost:5080
 ```
 
-The schema is created with `EnsureCreated`, not migrations, so after a model change (new column, new schema) drop the local database and let it rebuild: `sqllocaldb stop MSSQLLocalDB` then delete the `CloudTrack.Dev` database, or point `ConnectionStrings__DefaultConnection` at a fresh name.
+After changing an entity, add a migration and it applies on the next run:
+
+```powershell
+dotnet ef migrations add <Name> --project backend/src/CloudTrack.Infrastructure --startup-project backend/src/CloudTrack.Infrastructure
+```
 
 Swagger is available at `http://localhost:5080/swagger` in Development and health at `http://localhost:5080/health`.
 
@@ -142,7 +147,9 @@ The combined app is exposed at `http://localhost:8080`. `.env` is ignored and mu
 ## Verification
 
 ```powershell
+dotnet tool restore
 dotnet test backend/CloudTrack.sln --configuration Release
+dotnet ef migrations has-pending-model-changes --project backend/src/CloudTrack.Infrastructure --startup-project backend/src/CloudTrack.Infrastructure
 cd frontend
 npm test -- --watch=false
 npm run build
@@ -174,9 +181,10 @@ See [configuration guidance](docs/configuration.md) before committing or deployi
 backend/
   src/CloudTrack.Domain/          Entities and domain state
   src/CloudTrack.Application/     Contracts and use-case abstractions
-  src/CloudTrack.Infrastructure/  EF Core, authentication, services
+  src/CloudTrack.Infrastructure/  EF Core, migrations, authentication, services
   src/CloudTrack.Api/             HTTP boundary and composition root
   tests/                          Unit and integration tests
+.config/dotnet-tools.json         Pinned local tools (dotnet-ef)
 frontend/                         Angular app with co-located TS, HTML, and SCSS page files
 infra/main.bicep                  Lowest-cost learning environment template
 .github/workflows/                CI and gated Azure delivery

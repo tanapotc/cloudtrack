@@ -36,7 +36,7 @@ Tracked appsettings contain only safe defaults. Local secrets live in .NET user-
 
 ## Trade-offs and next steps
 
-- Automatic schema initialization is convenient for a lab; reviewed EF migrations should own production changes.
+- Schema changes ship as EF Core migrations applied on start-up; a multi-instance tier would move that into a dedicated release step.
 - Azure-service SQL access reduces lab complexity; private networking is the production hardening path.
 - The portfolio demo exposes a one-time reset link; real-user production must use transactional email and disable token exposure.
 - The initial audit log supports investigation but should gain structured correlation IDs and retention policy.

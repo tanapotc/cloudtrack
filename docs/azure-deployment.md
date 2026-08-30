@@ -74,6 +74,20 @@ az webapp deploy `
 
 After deployment, verify `/health`, `/auth/login`, `/auth/register`, and `/auth/forgot-password`, then test the corresponding API operations. Production forgot-password responses must not expose a reset token.
 
+## Database migrations
+
+The API runs `Database.Migrate()` on start-up, so deploying a build with a new migration applies it before the app serves traffic; a migration failure keeps the old instance serving and fails the deploy's health check. No separate migration step is required on Free F1.
+
+One-time cutover: the deployed database was first created by the pre-migration `EnsureCreated` path with every table in `dbo`. Before deploying the migration baseline, drop it so `InitialCreate` can rebuild it (seed data is recreated on start-up):
+
+```powershell
+az sql db delete --resource-group learning_stack --server sql-cloudtrack-dev<suffix> --name cloudtrack --yes
+az sql db create --resource-group learning_stack --server sql-cloudtrack-dev<suffix> --name cloudtrack `
+  --edition GeneralPurpose --compute-model Serverless --family Gen5 --capacity 2 --use-free-limit --free-limit-exhaustion-behavior AutoPause
+```
+
+Or re-run the Bicep template, which provisions the database with the same settings.
+
 ## Operations and cleanup
 
 - Do not delete the shared `learning_stack` resource group.
