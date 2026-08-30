@@ -20,9 +20,9 @@ Access tokens are short lived. Refresh tokens are high-entropy values delivered 
 
 The SPA keeps its access token in memory. A page refresh uses the refresh cookie to recover a session. No long-lived credential is stored in browser local storage.
 
-## ADR-005: One production origin
+## ADR-005: One App Service origin
 
-The Docker image builds Angular and copies its browser bundle into ASP.NET Core `wwwroot`. Azure Container Apps therefore exposes one HTTPS origin for both UI and `/api`. This reduces CORS complexity, avoids a second always-on service, and suits a low-traffic learning environment.
+The delivery workflow builds Angular and copies its browser bundle into ASP.NET Core `wwwroot`. Linux Azure App Service exposes one HTTPS origin for both UI and `/api`. This reduces CORS complexity, avoids a second service, and deploys as a ZIP without requiring Docker or a registry.
 
 ## ADR-006: Azure target and naming
 
@@ -30,11 +30,9 @@ The approved target is the existing learning resource group `learning_stack`. No
 
 | Resource | Generated name | Initial SKU/design |
 | --- | --- | --- |
-| Container App | `ca-cloudtrack-api-dev` | Consumption, 0.5 vCPU, 1 GiB, min 0/max 1 |
-| Container Apps environment | `cae-cloudtrack-dev` | Consumption |
-| Container Registry | `crcloudtrackdev<suffix>` | Basic |
+| App Service plan | `asp-cloudtrack-dev` | Linux Free F1, shared compute, no SLA |
+| App Service | `app-cloudtrack-dev-<suffix>` | .NET 8, HTTPS-only, ZIP run-from-package |
 | Azure SQL | `sql-cloudtrack-dev-<suffix>/cloudtrack` | Free offer, General Purpose serverless, 32 GB, auto-pause on free-limit exhaustion |
-| Logs | `log-cloudtrack-dev` | 30-day retention |
 
 The names identify the resource type, system, and environment. Globally unique resources receive a deterministic suffix during deployment.
 

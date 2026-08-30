@@ -35,7 +35,7 @@ The default local connection string is `Data Source=cloudtrack.db`. It contains 
 
 ## Azure mapping
 
-Set these as Container App or App Service environment variables, not source files:
+Set these as App Service environment variables, not source files:
 
 | Configuration key | Azure environment variable | Secret? |
 | --- | --- | --- |

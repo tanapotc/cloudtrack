@@ -1,4 +1,4 @@
-# Docker
+# Docker (optional local workflow)
 
 The production image builds Angular and publishes ASP.NET Core, then copies the browser bundle into the API's `wwwroot`. One origin means the browser never needs a production API secret or a cross-origin URL.
 
@@ -8,4 +8,4 @@ The production image builds Angular and publishes ASP.NET Core, then copies the 
 2. Run `docker compose up --build`.
 3. Open `http://localhost:8080`; health is available at `http://localhost:8080/health`.
 
-The compose stack uses SQL Server 2022 and a named volume. The application container runs as a non-root user. Docker is not installed in the initial development environment, so Azure Container Registry build is the authoritative image-build verification until Docker Desktop is available locally.
+The compose stack uses SQL Server 2022 and a named volume. The application container runs as a non-root user. Azure delivery does not use this image: GitHub Actions publishes a ZIP directly to App Service, so Docker is optional for contributors.

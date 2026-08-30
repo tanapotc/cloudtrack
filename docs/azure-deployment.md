@@ -1,28 +1,29 @@
 # Azure deployment runbook
 
-This runbook targets the existing resource group `learning_stack`. Keep the real subscription and tenant identifiers in protected GitHub configuration or the authenticated Azure CLI context, not in this public portfolio repository.
+This learning deployment uses the existing resource group `learning_stack`. It runs the ASP.NET Core API and compiled Angular application together on Linux Azure App Service, so Azure deployment does not require Docker or a container registry.
 
-## Approval gate
+## Cost-conscious resources
 
-Before the first deployment, confirm all of the following:
-
-1. The Azure CLI is authenticated to the intended tenant and subscription.
-2. `learning_stack` is the intended resource group and its region supports every selected resource.
-3. The Bicep `what-if` result contains only the expected resources below.
-4. The estimated monthly spend is acceptable and a budget alert is configured.
-5. Azure SQL access from Azure services is acceptable for this learning version.
-
-Expected resources:
-
-- Azure Container Apps environment and one Container App, Consumption plan, min replicas `0`, max replicas `1`.
-- Azure Container Registry, Basic.
+- Linux Azure App Service plan, Free F1 (shared compute, no SLA, suitable for a learning demo).
+- One App Service web app with HTTPS-only access.
 - Azure SQL Database free offer, General Purpose serverless, 2 vCores, 32 GB, local backup redundancy.
-- Log Analytics workspace with 30-day retention.
-- A managed identity and only the `AcrPull` role assignment it needs.
 
-The database is configured with `useFreeLimit=true` and `freeLimitExhaustionBehavior=AutoPause`, so it pauses until the next month instead of billing database overage. Container Registry still has a recurring cost, and logging or traffic can incur charges. Verify current prices immediately before deployment.
+The database uses `useFreeLimit=true` and `freeLimitExhaustionBehavior=AutoPause`. It pauses after the monthly free allowance is exhausted instead of continuing with paid overage. Free F1 App Service has daily CPU and storage limits and may cold-start after being idle.
 
-## Authenticate and inspect
+Check the current Azure limits and prices before every deployment. Create a budget alert even when using free SKUs because bandwidth, SQL backup growth, or later SKU changes can incur charges.
+
+## Secrets and configuration
+
+`appsettings.json` contains safe defaults only. The infrastructure template receives SQL credentials, the JWT signing key, and the seeded administrator credentials as secure parameters and writes them directly to App Service settings. Never commit real values to:
+
+- `appsettings*.json`;
+- `.env` files;
+- Bicep parameter JSON files;
+- workflow YAML, issues, screenshots, or build logs.
+
+The repository `.gitignore` excludes local/production settings, environment files, certificates, keys, and Bicep parameter JSON. For a production system, move secrets to Key Vault and use the App Service managed identity.
+
+## Authenticate and validate
 
 Authentication and MFA must be completed interactively by the account owner:
 
@@ -33,19 +34,10 @@ az account show --query "{subscription:name,id:id,tenant:tenantId}" --output tab
 az group show --name learning_stack --query "{name:name,location:location,state:properties.provisioningState}" --output table
 ```
 
-Do not proceed if any identifier or tenant is unexpected.
-
-## Validate infrastructure
-
-Compile without creating resources:
+Compile the template and preview changes before deployment:
 
 ```powershell
 az bicep build --file infra/main.bicep --stdout | Out-Null
-```
-
-For manual preview, create a temporary ignored `infra/local.parameters.json` containing the secure parameters, run `what-if`, and remove the file after use. Never paste real values into `main.bicep`, `appsettings*.json`, shell transcripts, issues, or screenshots.
-
-```powershell
 az deployment group what-if `
   --name cloudtrack-dev `
   --resource-group learning_stack `
@@ -53,46 +45,43 @@ az deployment group what-if `
   --parameters '@infra/local.parameters.json'
 ```
 
-Deployment is an explicit approval step after reviewing this output.
+Keep `infra/local.parameters.json` ignored and delete it after the owner-controlled deployment. Stop if the subscription, tenant, or `what-if` changes are unexpected.
 
 ## GitHub OIDC delivery
 
-The preferred path is `.github/workflows/deploy-azure.yml` with a federated Azure identity. Configure these GitHub Environment values:
+`.github/workflows/deploy-azure.yml` builds Angular, publishes ASP.NET Core with the frontend included, creates a ZIP package, and deploys it to the existing App Service. GitHub authenticates with an Azure federated identity; there is no client secret, Docker build, ACR, or registry credential.
 
-Variables:
+Repository/environment variables:
 
-- `AZURE_DEPLOY_ENABLED=false` until approved.
-- `AZURE_RESOURCE_GROUP=learning_stack`.
+- `AZURE_DEPLOY_ENABLED=false` until the deployment window is approved;
+- `AZURE_RESOURCE_GROUP=learning_stack`;
+- `AZURE_WEB_APP=app-cloudtrack-dev<suffix>`;
+- `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID` for non-secret OIDC metadata.
 
-Secrets:
+Grant the federated identity only `Website Contributor` on the target web app. Infrastructure and application settings remain owner-controlled and are not managed by the application workflow.
 
-- `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` for OIDC metadata.
-- `SQL_ADMIN_LOGIN`, `SQL_ADMIN_PASSWORD`.
-- `JWT_SIGNING_KEY` with at least 32 random characters.
-- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
+## Manual package deployment
 
-Enable required reviewers on the `azure-dev` GitHub Environment. Change `AZURE_DEPLOY_ENABLED` to `true` only for an approved deployment window.
-
-## Verify and operate
-
-After deployment:
+Build Angular first, then publish from the API project with `IncludeFrontendDist=true`. The ZIP must contain `CloudTrack.Api.dll` and `wwwroot/index.html` at its root level.
 
 ```powershell
-az deployment group show --resource-group learning_stack --name cloudtrack-dev --output table
-az containerapp show --resource-group learning_stack --name ca-cloudtrack-api-dev --query properties.configuration.ingress.fqdn --output tsv
-az containerapp revision list --resource-group learning_stack --name ca-cloudtrack-api-dev --output table
+az webapp deploy `
+  --resource-group learning_stack `
+  --name app-cloudtrack-dev<suffix> `
+  --src-path '<cloudtrack.zip>' `
+  --type zip
 ```
 
-Verify `/health`, registration, login, a project create/read flow, and the admin authorization boundary. Do not publish test administrator credentials in README screenshots.
+After deployment, verify `/health`, `/auth/login`, `/auth/register`, and `/auth/forgot-password`, then test the corresponding API operations. Production forgot-password responses must not expose a reset token.
 
-## Cost controls and cleanup
+## Operations and cleanup
 
-- Create a monthly budget and at least 50%, 80%, and 100% alerts before leaving the environment unattended.
-- Keep Container Apps at min replicas `0` and max replicas `1` for the interview demo.
-- Review Log Analytics ingestion and retention after the first week.
-- Keep the Azure SQL free-limit behavior set to `AutoPause`; an exhausted database remains unavailable until the monthly allowance resets instead of generating overage charges.
-- Delete individual CloudTrack resources only after checking the exact resource IDs. The shared `learning_stack` resource group must not be deleted as project cleanup.
+- Do not delete the shared `learning_stack` resource group.
+- Keep the SQL free-limit behavior set to `AutoPause`.
+- Free F1 has no SLA; a sleeping or quota-exhausted demo is expected to be unavailable temporarily.
+- Check exact resource IDs before removing resources.
+- Container Apps, its managed environment, ACR, and container-only identities can be removed after the App Service deployment is verified.
 
 ## Version-two hardening
 
-The learning deployment allows Azure-service access to Azure SQL. A stronger production design would use private networking, Key Vault, managed database identity where supported, separate migration execution, restore drills, alerts, and an explicit observability/SLO plan.
+This learning deployment allows Azure-service access to Azure SQL. A production design should use private networking, Key Vault references, managed database identity where supported, separate migration execution, restore drills, alerts, and an explicit observability/SLO plan.

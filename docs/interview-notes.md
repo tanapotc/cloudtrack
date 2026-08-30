@@ -2,7 +2,7 @@
 
 ## Two-minute project story
 
-CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core supports lightweight SQLite tests and SQL Server for Azure. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The same pipeline tests the API, browser, secrets, and container before a gated Azure deployment.
+CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core supports lightweight SQLite tests and SQL Server for Azure. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The pipeline tests the API, browser, and secrets before a gated ZIP deployment to Azure App Service using OIDC.
 
 ## Decisions worth explaining
 
@@ -14,9 +14,9 @@ SQLite removes a local infrastructure prerequisite and makes integration tests f
 
 The access token is held in memory and kept short lived. The refresh token is an HttpOnly cookie and only its hash is persisted. This reduces exposure to browser script access while preserving silent session recovery. Rotation and revocation provide controls that a single long-lived bearer token would not.
 
-### Why one container?
+### Why one App Service?
 
-Serving Angular and the API from one origin reduces CORS and deployment complexity and lets a low-traffic Container App scale to zero. The trade-off is that UI and API scale together; separate services would be appropriate when their release cadence or traffic profiles diverge.
+Serving Angular and the API from one App Service origin reduces CORS and deployment complexity. Free F1 avoids a container registry and is appropriate for an interview demo, but has no SLA, daily quotas, and possible cold starts. UI and API still scale together; separate services would be appropriate when their release cadence or traffic profiles diverge.
 
 ### What did E2E testing find?
 
@@ -24,7 +24,7 @@ The desktop flow passed while the Pixel 7 flow could not reach Projects because 
 
 ### How are secrets protected?
 
-Tracked appsettings contain only safe defaults. Local secrets live in .NET user-secrets or ignored `.env` files. Azure values are Container App secret references, GitHub uses protected Environment secrets and OIDC, and CI runs Gitleaks. Angular receives only public configuration because every browser bundle can be inspected.
+Tracked appsettings contain only safe defaults. Local secrets live in .NET user-secrets or ignored `.env` files. Azure values are protected App Service settings, GitHub uses OIDC without a client secret, and CI runs Gitleaks. Angular receives only public configuration because every browser bundle can be inspected.
 
 ## Trade-offs and next steps
 

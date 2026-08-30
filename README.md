@@ -1,8 +1,10 @@
 # CloudTrack
 
-CloudTrack is a production-minded project workspace built as a full-stack and Azure portfolio project. It covers the complete identity lifecycle, role-based administration, project and task workflows, automated verification, container delivery, and infrastructure as code.
+CloudTrack is a production-minded project workspace built as a full-stack and Azure portfolio project. It covers the complete identity lifecycle, role-based administration, project and task workflows, automated verification, App Service delivery, and infrastructure as code.
 
-> Deployment status: local build and cross-device E2E tests are verified. The Azure environment is intentionally gated until its resource plan and estimated cost are approved.
+> Deployment status: the application is live on Azure App Service Free F1 with Azure SQL Free/Serverless. Local and cross-device E2E tests are also verified.
+
+[Open the live CloudTrack demo](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net)
 
 ![CloudTrack login on desktop](docs/screenshots/login-desktop.png)
 
@@ -14,7 +16,7 @@ CloudTrack is a production-minded project workspace built as a full-stack and Az
 - Project and task management with audit history, search, filters, paging, and optimistic concurrency.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
 - Layered ASP.NET Core backend with SQLite for lightweight local tests and SQL Server in Azure.
-- Docker, GitHub Actions, secret scanning, health probes, and Bicep infrastructure.
+- App Service ZIP delivery without Docker, GitHub Actions OIDC, secret scanning, health probes, and Bicep infrastructure.
 
 ## Architecture
 
@@ -27,12 +29,11 @@ flowchart LR
   API --> Infra[EF Core infrastructure]
   Infra --> Local[(SQLite local)]
   Infra --> Cloud[(Azure SQL Database)]
-  Actions[GitHub Actions] --> Registry[Azure Container Registry]
-  Registry --> Container[Azure Container Apps]
-  Container --> Cloud
+  Actions[GitHub Actions OIDC] --> WebApp[Azure App Service F1]
+  WebApp --> Cloud
 ```
 
-The production container serves the Angular bundle and API from one origin. This keeps browser configuration public and simple while the backend receives database credentials and signing keys only through secret environment variables.
+The App Service package serves the Angular bundle and API from one origin. This keeps browser configuration public and simple while the backend receives database credentials and signing keys only through protected App Service settings.
 
 ## Technology
 
@@ -43,8 +44,8 @@ The production container serves the Angular bundle and API from one origin. This
 | Data | EF Core 8, SQLite, SQL Server |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
 | Quality | xUnit, ASP.NET integration tests, Vitest, Playwright |
-| Delivery | Docker, GitHub Actions, Gitleaks, Azure Bicep |
-| Azure | Container Apps, Container Registry, Azure SQL Database Free/Serverless, Log Analytics |
+| Delivery | App Service ZIP, GitHub Actions OIDC, Gitleaks, Azure Bicep; optional Docker |
+| Azure | Linux App Service Free F1, Azure SQL Database Free/Serverless |
 
 ## Run locally
 
@@ -93,13 +94,13 @@ npm run e2e
 npm audit --omit=dev
 ```
 
-CI repeats these checks, scans the full Git history for secrets, and builds the production image. Azure deployment is disabled by default and requires the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment.
+CI repeats these checks and scans the full Git history for secrets. Azure delivery builds a ZIP package and is gated by the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment.
 
 ## Security and configuration
 
 - `appsettings.json` contains non-secret defaults and an empty signing key.
 - Local secrets belong in .NET user-secrets or an ignored `.env` file.
-- Azure secrets become Container App secret references; they are never compiled into Angular.
+- Azure secrets are protected App Service settings; they are never compiled into Angular or stored in GitHub.
 - Forgot-password responses do not reveal whether an email exists.
 - Changing a password revokes all refresh tokens.
 - The auth endpoints are rate-limited; API errors use consistent Problem Details.

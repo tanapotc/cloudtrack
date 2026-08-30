@@ -22,59 +22,9 @@ param seedAdminPassword string
 param environmentName string = 'dev'
 
 var suffix = take(uniqueString(subscription().id, resourceGroup().id), 7)
-var registryName = 'crcloudtrack${environmentName}${suffix}'
 var sqlServerName = 'sql-cloudtrack-${environmentName}-${suffix}'
-var appName = 'ca-cloudtrack-api-${environmentName}'
-var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-
-resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  name: 'log-cloudtrack-${environmentName}'
-  location: location
-  properties: {
-    sku: { name: 'PerGB2018' }
-    retentionInDays: 30
-    features: { enableLogAccessUsingOnlyResourcePermissions: true }
-  }
-}
-
-resource registry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
-  name: registryName
-  location: location
-  sku: { name: 'Basic' }
-  properties: {
-    adminUserEnabled: false
-    publicNetworkAccess: 'Enabled'
-  }
-}
-
-resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'id-cloudtrack-${environmentName}'
-  location: location
-}
-
-resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(registry.id, pullIdentity.id, 'AcrPull')
-  scope: registry
-  properties: {
-    principalId: pullIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-  }
-}
-
-resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: 'cae-cloudtrack-${environmentName}'
-  location: location
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logs.properties.customerId
-        sharedKey: logs.listKeys().primarySharedKey
-      }
-    }
-  }
-}
+var webAppName = 'app-cloudtrack-${environmentName}-${suffix}'
+var sqlConnectionString = 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=cloudtrack;Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
   name: sqlServerName
@@ -117,70 +67,61 @@ resource allowAzure 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
   }
 }
 
-resource app 'Microsoft.App/containerApps@2024-03-01' = {
-  name: appName
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: 'asp-cloudtrack-${environmentName}'
   location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${pullIdentity.id}': {}
-    }
+  kind: 'linux'
+  sku: {
+    name: 'F1'
+    tier: 'Free'
+    size: 'F1'
+    family: 'F'
+    capacity: 1
   }
   properties: {
-    managedEnvironmentId: environment.id
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 8080
-        transport: 'auto'
-        allowInsecure: false
-      }
-      registries: [
-        {
-          server: registry.properties.loginServer
-          identity: pullIdentity.id
-        }
+    reserved: true
+  }
+}
+
+resource webApp 'Microsoft.Web/sites@2023-12-01' = {
+  name: webAppName
+  location: location
+  kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    clientAffinityEnabled: false
+    publicNetworkAccess: 'Enabled'
+    siteConfig: {
+      alwaysOn: false
+      ftpsState: 'Disabled'
+      http20Enabled: true
+      linuxFxVersion: 'DOTNETCORE|8.0'
+      minTlsVersion: '1.2'
+      appSettings: [
+        { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
+        { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
+        { name: 'Database__Provider', value: 'SqlServer' }
+        { name: 'ConnectionStrings__DefaultConnection', value: sqlConnectionString }
+        { name: 'Jwt__SigningKey', value: jwtSigningKey }
+        { name: 'Auth__ExposeDevelopmentResetToken', value: 'false' }
+        { name: 'Seed__AdminEmail', value: seedAdminEmail }
+        { name: 'Seed__AdminPassword', value: seedAdminPassword }
+        { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'false' }
+        { name: 'WEBSITE_RUN_FROM_PACKAGE', value: '1' }
       ]
-      secrets: [
-        { name: 'jwt-signing-key', value: jwtSigningKey }
-        { name: 'sql-connection', value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=cloudtrack;Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;' }
-        { name: 'seed-admin-email', value: seedAdminEmail }
-        { name: 'seed-admin-password', value: seedAdminPassword }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'cloudtrack'
-          image: placeholderImage
-          resources: { cpu: json('0.5'), memory: '1Gi' }
-          env: [
-            { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
-            { name: 'Database__Provider', value: 'SqlServer' }
-            { name: 'ConnectionStrings__DefaultConnection', secretRef: 'sql-connection' }
-            { name: 'Jwt__SigningKey', secretRef: 'jwt-signing-key' }
-            { name: 'Auth__ExposeDevelopmentResetToken', value: 'false' }
-            { name: 'Seed__AdminEmail', secretRef: 'seed-admin-email' }
-            { name: 'Seed__AdminPassword', secretRef: 'seed-admin-password' }
-          ]
-          probes: [
-            { type: 'Liveness', httpGet: { path: '/health', port: 8080, scheme: 'HTTP' }, initialDelaySeconds: 20, periodSeconds: 30 }
-            { type: 'Readiness', httpGet: { path: '/health', port: 8080, scheme: 'HTTP' }, initialDelaySeconds: 10, periodSeconds: 15 }
-          ]
-        }
-      ]
-      scale: { minReplicas: 0, maxReplicas: 1 }
     }
   }
   dependsOn: [
-    acrPull
     sqlDatabase
     allowAzure
   ]
 }
 
-output registryName string = registry.name
-output containerAppName string = app.name
-output applicationUrl string = 'https://${app.properties.configuration.ingress.fqdn}'
+output appServicePlanName string = appServicePlan.name
+output webAppName string = webApp.name
+output applicationUrl string = 'https://${webApp.properties.defaultHostName}'
 output sqlServerName string = sqlServer.name
