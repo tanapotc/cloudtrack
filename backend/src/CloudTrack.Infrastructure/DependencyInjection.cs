@@ -1,7 +1,11 @@
 using CloudTrack.Application.Auth;
+using CloudTrack.Application.Dashboard;
+using CloudTrack.Application.Projects;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Infrastructure.Auth;
 using CloudTrack.Infrastructure.Persistence;
+using CloudTrack.Infrastructure.Dashboard;
+using CloudTrack.Infrastructure.Projects;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -36,6 +40,8 @@ public static class DependencyInjection
         services.Configure<AuthOptions>(configuration.GetSection(AuthOptions.SectionName));
         services.AddScoped<IPasswordHasher<AppUser>, PasswordHasher<AppUser>>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IDashboardService, DashboardService>();
         return services;
     }
 }

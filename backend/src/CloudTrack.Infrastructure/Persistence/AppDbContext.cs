@@ -3,6 +3,7 @@ using CloudTrack.Domain.Common;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Domain.Projects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CloudTrack.Infrastructure.Persistence;
 
@@ -48,6 +49,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<WorkItem>().HasIndex(x => new { x.ProjectId, x.Status, x.Priority });
         modelBuilder.Entity<WorkItemComment>().HasIndex(x => new { x.WorkItemId, x.CreatedAt });
         modelBuilder.Entity<AuditLog>().HasIndex(x => new { x.EntityType, x.EntityId, x.CreatedAt });
+
+        var dateTimeOffsetConverter = new ValueConverter<DateTimeOffset, DateTime>(
+            value => value.UtcDateTime,
+            value => new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)));
+        var nullableDateTimeOffsetConverter = new ValueConverter<DateTimeOffset?, DateTime?>(
+            value => value.HasValue ? value.Value.UtcDateTime : null,
+            value => value.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)) : null);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTimeOffset))
+                {
+                    property.SetValueConverter(dateTimeOffsetConverter);
+                }
+                else if (property.ClrType == typeof(DateTimeOffset?))
+                {
+                    property.SetValueConverter(nullableDateTimeOffsetConverter);
+                }
+            }
+        }
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -69,4 +92,3 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         return base.SaveChangesAsync(cancellationToken);
     }
 }
-
