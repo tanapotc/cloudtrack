@@ -1,0 +1,29 @@
+<div class="workspace" [class.nav-open]="navOpen()">
+  <aside>
+    <a routerLink="/dashboard" class="brand"><span class="brand-mark"><mat-icon>cloud_queue</mat-icon></span><span>CloudTrack</span></a>
+    <nav aria-label="Primary navigation">
+      <p>WORKSPACE</p>
+      @for (item of primaryNav; track item.route) {
+        <a [routerLink]="item.route" routerLinkActive="active" (click)="navOpen.set(false)"><mat-icon>{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>
+      }
+      <p>MANAGE</p>
+      @for (item of manageNav; track item.route) {
+        <a [routerLink]="item.route" routerLinkActive="active" (click)="navOpen.set(false)"><mat-icon>{{ item.icon }}</mat-icon><span>{{ item.label }}</span></a>
+      }
+    </nav>
+    <div class="learning-card"><mat-icon>auto_awesome</mat-icon><strong>Portfolio lab</strong><span>Built to learn Azure with production-minded choices.</span></div>
+    <button class="account" [matMenuTriggerFor]="accountMenu">
+      <span class="avatar">{{ initials() }}</span><span><strong>{{ auth.currentUser()?.displayName }}</strong><small>{{ auth.currentUser()?.roles?.[0] }}</small></span><mat-icon>unfold_more</mat-icon>
+    </button>
+    <mat-menu #accountMenu="matMenu"><button mat-menu-item routerLink="/profile"><mat-icon>person</mat-icon>Profile</button><button mat-menu-item routerLink="/settings"><mat-icon>settings</mat-icon>Settings</button><button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Sign out</button></mat-menu>
+  </aside>
+  <button class="scrim" aria-label="Close navigation" (click)="navOpen.set(false)"></button>
+  <section class="content-area">
+    <header>
+      <button mat-icon-button class="menu-button" aria-label="Open navigation" [attr.aria-expanded]="navOpen()" (click)="navOpen.set(!navOpen())"><mat-icon>menu</mat-icon></button>
+      <div class="search"><mat-icon>search</mat-icon><span>Search projects and tasks</span><kbd>⌘ K</kbd></div>
+      <div class="header-actions"><button mat-icon-button aria-label="Help"><mat-icon>help_outline</mat-icon></button><button mat-icon-button aria-label="Notifications"><mat-icon>notifications_none</mat-icon><i></i></button><span class="mini-avatar">{{ initials() }}</span></div>
+    </header>
+    <main><router-outlet /></main>
+  </section>
+</div>
