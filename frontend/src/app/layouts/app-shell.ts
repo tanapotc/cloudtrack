@@ -31,7 +31,7 @@ import { AuthService } from '../core/auth.service';
       <button class="scrim" aria-label="Close navigation" (click)="navOpen.set(false)"></button>
       <section class="content-area">
         <header>
-          <button mat-icon-button class="menu-button" (click)="navOpen.set(!navOpen())"><mat-icon>menu</mat-icon></button>
+          <button mat-icon-button class="menu-button" aria-label="Open navigation" [attr.aria-expanded]="navOpen()" (click)="navOpen.set(!navOpen())"><mat-icon>menu</mat-icon></button>
           <div class="search"><mat-icon>search</mat-icon><span>Search projects and tasks</span><kbd>⌘ K</kbd></div>
           <div class="header-actions"><button mat-icon-button aria-label="Help"><mat-icon>help_outline</mat-icon></button><button mat-icon-button aria-label="Notifications"><mat-icon>notifications_none</mat-icon><i></i></button><span class="mini-avatar">{{ initials() }}</span></div>
         </header>
@@ -69,4 +69,3 @@ export class AppShell {
     return this.auth.currentUser()?.displayName.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() ?? 'CT';
   }
 }
-
