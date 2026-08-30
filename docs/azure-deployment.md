@@ -62,20 +62,24 @@ Grant the federated identity only `Website Contributor` on the target web app. I
 
 ## Manual package deployment
 
-`scripts/deploy-local.ps1` builds the Angular bundle, publishes the API with the frontend embedded, packs the ZIP, deploys it, and probes the public routes:
+`scripts/deploy-local.ps1` builds the Angular bundle, publishes the API with the frontend embedded, creates and validates a Linux-safe ZIP, deploys it, and exercises the live API. Build artifacts default to `D:\CloudTrackBuilds` when drive D is available, keeping temporary build output off drive C:
 
 ```powershell
 pwsh ./scripts/deploy-local.ps1
 ```
 
-To run the steps by hand, build Angular, publish the API with `IncludeFrontendDist=true`, then pack the ZIP so `CloudTrack.Api.dll` and `wwwroot/index.html` sit at its root. Pack it with `tar` (or `zip` on Linux/macOS), **not** `Compress-Archive` - Windows PowerShell writes backslash path separators that Linux App Service unpacks as literal file names, which breaks assembly loading and static files.
+To run the steps by hand, build Angular, publish the API with `IncludeFrontendDist=true`, then pack the ZIP so `CloudTrack.Api.dll` and `wwwroot/index.html` sit at its root. Use .NET `ZipFile` on Windows (or `zip` on Linux/macOS), **not** `Compress-Archive` or a `tar -C <publish> .` archive. The former can write backslash paths and the latter can prefix every entry with `./`; either shape can prevent Linux App Service from mounting the package.
 
 ```powershell
-tar -a -c -f "$env:TEMP\cloudtrack.zip" -C "$env:TEMP\cloudtrack-publish" .
-az webapp deploy --resource-group learning_stack --name app-cloudtrack-dev<suffix> --src-path "$env:TEMP\cloudtrack.zip" --type zip
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+  'D:\CloudTrackBuilds\cloudtrack-publish',
+  'D:\CloudTrackBuilds\cloudtrack.zip'
+)
+az webapp deploy --resource-group learning_stack --name app-cloudtrack-dev<suffix> `
+  --src-path 'D:\CloudTrackBuilds\cloudtrack.zip' --type zip --clean true --restart true
 ```
 
-After deployment, verify `/health`, `/auth/login`, `/auth/register`, and `/auth/forgot-password`, then test the corresponding API operations. Production forgot-password responses must not expose a reset token.
+After deployment, the PowerShell script checks health and OpenAPI, verifies that a protected endpoint returns 401 without credentials, and sends a real forgot-password API request. The GitHub workflow performs the same checks through `.github/scripts/smoke-azure.sh`. Production forgot-password responses must not expose a reset token.
 
 ## Database migrations
 
