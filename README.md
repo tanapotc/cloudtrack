@@ -1,6 +1,6 @@
 # CloudTrack
 
-CloudTrack is a production-minded project workspace built as a full-stack and Azure portfolio project. It covers the complete identity lifecycle, role-based administration, project and task workflows, automated verification, App Service delivery, and infrastructure as code.
+CloudTrack is a personal full-stack and Azure portfolio project built to keep ideas, tasks, and progress organized in one place. It demonstrates the complete identity lifecycle, role-based administration, project and task workflows, automated verification, App Service delivery, and infrastructure as code.
 
 > Deployment status: the application is live on Azure App Service Free F1 with Azure SQL Free/Serverless. Local and cross-device E2E tests are also verified.
 
@@ -29,19 +29,47 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 ## Architecture
 
 ```mermaid
-flowchart LR
-  Browser[Angular 22 SPA] -->|HTTPS /api| API[ASP.NET Core 8 API]
-  API --> Auth[JWT + rotated refresh tokens]
-  API --> App[Application contracts]
-  App --> Domain[Domain entities and rules]
-  API --> Infra[EF Core infrastructure]
-  Infra --> Local[(SQLite local)]
-  Infra --> Cloud[(Azure SQL Database)]
-  Actions[GitHub Actions OIDC] --> WebApp[Azure App Service F1]
-  WebApp --> Cloud
+flowchart TB
+  Browser[Web browser]
+
+  subgraph AppService[Azure App Service · Linux F1]
+    Static[Angular 22 SPA<br/>compiled into wwwroot]
+    API[ASP.NET Core 8 API]
+    Static -->|same-origin /api requests| API
+    API --> Application[Application contracts]
+    Application --> Domain[Domain entities and rules]
+    API --> Infrastructure[EF Core + identity infrastructure]
+  end
+
+  Browser -->|HTTPS| Static
+  Browser -->|HTTPS /api| API
+  Infrastructure -->|encrypted connection| AzureSQL[(Azure SQL Database<br/>free/serverless)]
+
+  GitHub[GitHub Actions] -->|OIDC · ZIP deploy| AppService
+  Bicep[Azure Bicep] -->|provisions| AppService
+  Bicep -->|provisions| AzureSQL
 ```
 
-The App Service package serves the Angular bundle and API from one origin. This keeps browser configuration public and simple while the backend receives database credentials and signing keys only through protected App Service settings.
+The production deployment uses one App Service for both the Angular bundle and the API. Serving both from one origin avoids a separate Static Web App, container runtime, and production CORS dependency. Azure SQL is the only production database; SQLite is limited to isolated local and automated test runs.
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant API as ASP.NET Core API
+  participant SQL as Azure SQL
+
+  Browser->>API: Register or sign in over HTTPS
+  API->>SQL: Validate identity and store hashed credentials
+  API-->>Browser: Short-lived access token in response memory
+  API-->>Browser: Rotated refresh token in HttpOnly cookie
+  Browser->>API: Authorized /api request with bearer token
+  API-->>Browser: Protected resource
+  Browser->>API: Refresh after reload or access-token expiry
+  API->>SQL: Rotate and revoke refresh-token record
+  API-->>Browser: New access token + replacement cookie
+```
+
+The browser never receives database credentials or the JWT signing key. Non-secret Angular configuration is compiled with the frontend, while connection strings and signing settings are injected only into the backend through protected App Service application settings. The access token stays in memory; the refresh token is stored in a `Secure`, `HttpOnly`, same-site cookie.
 
 ## Technology
 
