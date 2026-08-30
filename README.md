@@ -83,11 +83,16 @@ The browser never receives the connection string or the JWT signing key; those a
 
 Every page and layout keeps its logic, markup, and styles in co-located `*.ts` / `*.html` / `*.scss` files (`angular.json` makes external templates and SCSS the default for new components). Component style encapsulation stays on; `src/styles.scss` holds only the Material theme, typography, and reset.
 
+### Generated API client
+
+The frontend never hand-writes HTTP calls or response types. `dotnet swagger tofile` exports the OpenAPI document to [`frontend/openapi/cloudtrack.json`](frontend/openapi/cloudtrack.json) and `npm run api-generate` (`ng-openapi-gen`) turns it into typed services and models under `frontend/src/app/api/`. `AuthService` and `ApiService` are thin facades over those generated services, so feature components keep a small task-shaped surface. CI regenerates both artefacts and fails if either has drifted.
+
 ## Technology
 
 | Area | Choice |
 | --- | --- |
 | Web | Angular 22, standalone components, Angular Material, signals |
+| API client | OpenAPI spec exported from Swashbuckle, TypeScript client generated with ng-openapi-gen |
 | API | ASP.NET Core 8, controllers, Problem Details, rate limiting |
 | Data | EF Core 8 with migrations, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
@@ -178,8 +183,10 @@ backend/
   src/CloudTrack.Infrastructure/  EF Core, migrations, authentication, services
   src/CloudTrack.Api/             HTTP boundary and composition root
   tests/                          Unit and integration tests
-.config/dotnet-tools.json         Pinned local tools (dotnet-ef)
+.config/dotnet-tools.json         Pinned local tools (dotnet-ef, swagger)
 frontend/                         Angular app with co-located TS, HTML, and SCSS page files
+  openapi/cloudtrack.json          Exported OpenAPI spec (source for the generated client)
+  src/app/api/                     Generated API client (npm run api-generate)
 infra/main.bicep                  Lowest-cost learning environment template
 scripts/deploy-local.ps1          Manual build-and-deploy for when CI cannot run
 .github/workflows/                CI and gated Azure delivery
