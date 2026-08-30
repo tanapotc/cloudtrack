@@ -14,8 +14,14 @@
 .env
 .env.*
 !.env.example
-**/appsettings.Development.local.json
+**/appsettings.Local.json
+**/appsettings.*.local.json
 **/appsettings.Production.json
+**/appsettings.Azure.json
+**/secrets.json
+**/local.settings.json
+*.publishsettings
+.azure/
 *.pfx
 *.p12
 *.key
@@ -37,4 +43,3 @@ Thumbs.db
 TestResults/
 playwright-report/
 test-results/
-
