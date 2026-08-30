@@ -66,3 +66,15 @@ export interface DashboardSummary {
   recentActivity: { action: string; entityType: string; entityId?: string; occurredAt: string }[];
 }
 
+export interface ManagedUserSummary extends UserSummary {
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+export interface RoleSummary {
+  id: string;
+  name: string;
+  description: string;
+  userCount: number;
+}

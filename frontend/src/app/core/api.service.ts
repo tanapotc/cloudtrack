@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { DashboardSummary, PagedResult, ProjectDetails, ProjectSummary, WorkItemSummary } from './models';
+import { DashboardSummary, ManagedUserSummary, PagedResult, ProjectDetails, ProjectSummary, RoleSummary, WorkItemSummary } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -33,5 +33,18 @@ export class ApiService {
   updateTask(projectId: string, task: WorkItemSummary, status: number) {
     return this.http.put<WorkItemSummary>(`${environment.apiUrl}/projects/${projectId}/tasks/${task.id}`, { ...task, status });
   }
-}
 
+  users(search = '') {
+    let params = new HttpParams().set('page', 1).set('pageSize', 30);
+    if (search) params = params.set('search', search);
+    return this.http.get<PagedResult<ManagedUserSummary>>(`${environment.apiUrl}/admin/users`, { params });
+  }
+
+  roles() {
+    return this.http.get<RoleSummary[]>(`${environment.apiUrl}/admin/roles`);
+  }
+
+  updateUserStatus(userId: string, isActive: boolean) {
+    return this.http.put<ManagedUserSummary>(`${environment.apiUrl}/admin/users/${userId}/status`, { isActive });
+  }
+}

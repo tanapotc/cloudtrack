@@ -36,6 +36,10 @@ export class AuthService {
     return this.http.post<void>(`${environment.apiUrl}/auth/reset-password`, { token, newPassword });
   }
 
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http.post<void>(`${environment.apiUrl}/auth/change-password`, { currentPassword, newPassword });
+  }
+
   refresh(): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true }).pipe(tap((response) => this.storeSession(response)));
   }
@@ -69,4 +73,3 @@ export class AuthService {
     }
   }
 }
-
