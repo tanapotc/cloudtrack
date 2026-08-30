@@ -62,14 +62,17 @@ Grant the federated identity only `Website Contributor` on the target web app. I
 
 ## Manual package deployment
 
-Build Angular first, then publish from the API project with `IncludeFrontendDist=true`. The ZIP must contain `CloudTrack.Api.dll` and `wwwroot/index.html` at its root level.
+`scripts/deploy-local.ps1` builds the Angular bundle, publishes the API with the frontend embedded, packs the ZIP, deploys it, and probes the public routes:
 
 ```powershell
-az webapp deploy `
-  --resource-group learning_stack `
-  --name app-cloudtrack-dev<suffix> `
-  --src-path '<cloudtrack.zip>' `
-  --type zip
+pwsh ./scripts/deploy-local.ps1
+```
+
+To run the steps by hand, build Angular, publish the API with `IncludeFrontendDist=true`, then pack the ZIP so `CloudTrack.Api.dll` and `wwwroot/index.html` sit at its root. Pack it with `tar` (or `zip` on Linux/macOS), **not** `Compress-Archive` - Windows PowerShell writes backslash path separators that Linux App Service unpacks as literal file names, which breaks assembly loading and static files.
+
+```powershell
+tar -a -c -f "$env:TEMP\cloudtrack.zip" -C "$env:TEMP\cloudtrack-publish" .
+az webapp deploy --resource-group learning_stack --name app-cloudtrack-dev<suffix> --src-path "$env:TEMP\cloudtrack.zip" --type zip
 ```
 
 After deployment, verify `/health`, `/auth/login`, `/auth/register`, and `/auth/forgot-password`, then test the corresponding API operations. Production forgot-password responses must not expose a reset token.

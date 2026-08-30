@@ -187,6 +187,7 @@ backend/
 .config/dotnet-tools.json         Pinned local tools (dotnet-ef)
 frontend/                         Angular app with co-located TS, HTML, and SCSS page files
 infra/main.bicep                  Lowest-cost learning environment template
+scripts/deploy-local.ps1          Manual build-and-deploy for when CI cannot run
 .github/workflows/                CI and gated Azure delivery
 docs/                             Architecture, operations, and interview notes
 ```
