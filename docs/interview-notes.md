@@ -10,6 +10,10 @@ CloudTrack is a project-management workspace I built to demonstrate an end-to-en
 
 An earlier version used SQLite for local and test runs to avoid a database prerequisite. The problem: integration tests passed against an engine production never uses, so provider-specific behavior around execution strategies, retries, and transactions went untested. Now every environment uses SQL Server — LocalDB for development, an ephemeral SQL Server 2022 container in CI, and Azure SQL serverless in production. Tests create and drop a database per run, so they stay isolated without a second provider.
 
+### Why split schemas and add audit columns?
+
+`dbo` is just SQL Server's default schema; EF Core uses it when none is set. Grouping tables into `mas` (reference data), `tra` (transactions), `sec` (tokens), and `aud` (audit) documents ownership and leaves room for schema-scoped grants such as a read-only reporting login on `tra`. Every table carries `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`, and `IsActive`; `AppDbContext.SaveChanges` stamps them from an `ICurrentUser` bound to the request JWT. The actor columns are unconstrained `Guid`s so deleting a user never touches history, and `IsActive` is a bare flag with no global query filter so nothing changes behaviour until a query opts in.
+
 ### Why not store JWTs in local storage?
 
 The access token is held in memory and kept short lived. The refresh token is an HttpOnly cookie and only its hash is persisted. This reduces exposure to browser script access while preserving silent session recovery. Rotation and revocation provide controls that a single long-lived bearer token would not.

@@ -24,6 +24,7 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 - Short-lived JWT access tokens with hashed, rotated refresh tokens in an HttpOnly cookie.
 - `Admin`, `Manager`, and `Member` roles with protected user and role management.
 - Project and task management with audit history, search, filters, paging, and optimistic concurrency.
+- Purpose-named SQL schemas (`mas`, `tra`, `sec`, `aud`) and audit columns (`CreatedBy`/`CreatedAt`/`UpdatedBy`/`UpdatedAt`/`IsActive`) on every table.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
 - Layered ASP.NET Core backend running SQL Server everywhere: LocalDB for development and tests, Azure SQL in production.
 - App Service ZIP delivery without Docker, GitHub Actions OIDC, secret scanning, health probes, and Bicep infrastructure.
@@ -113,6 +114,8 @@ cd backend/src/CloudTrack.Api
 dotnet user-secrets set "Jwt:SigningKey" "replace-with-at-least-32-random-characters"
 dotnet run --urls http://localhost:5080
 ```
+
+The schema is created with `EnsureCreated`, not migrations, so after a model change (new column, new schema) drop the local database and let it rebuild: `sqllocaldb stop MSSQLLocalDB` then delete the `CloudTrack.Dev` database, or point `ConnectionStrings__DefaultConnection` at a fresh name.
 
 Swagger is available at `http://localhost:5080/swagger` in Development and health at `http://localhost:5080/health`.
 

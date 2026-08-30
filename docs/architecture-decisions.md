@@ -39,3 +39,20 @@ The names identify the resource type, system, and environment. Globally unique r
 ## ADR-007: Gated cloud delivery
 
 CI always verifies code. The Azure job runs only when `AZURE_DEPLOY_ENABLED` is explicitly set to `true`, and it uses GitHub OIDC instead of storing a long-lived client secret. Infrastructure is previewed with `what-if` before the first deployment, and the production environment can require approval.
+
+## ADR-008: Schema separation and audit columns
+
+Tables are grouped into purpose-named schemas instead of the SQL Server default `dbo`:
+
+| Schema | Contents |
+| --- | --- |
+| `mas` | Master / reference data: users, roles, permissions, and their join tables |
+| `tra` | Transactional data: projects, project members, work items, comments |
+| `sec` | Security artifacts: refresh tokens, password-reset tokens |
+| `aud` | Audit trail: audit log |
+
+`dbo` is the schema every SQL Server database ships with, and it is where EF Core places tables when no schema is configured. Named schemas cost nothing at runtime but make ownership obvious and allow schema-level `GRANT`s later (for example, a read-only reporting login scoped to `tra`).
+
+Every table also carries five audit columns through the `IAuditable` contract: `CreatedBy`, `CreatedAt`, `UpdatedBy`, `UpdatedAt`, and `IsActive`. `Entity` supplies them for keyed tables and `AuditableLink` supplies them for composite-key join tables. `AppDbContext.SaveChanges` stamps the timestamps and, using an `ICurrentUser` resolved from the request JWT, the actor ids. `CreatedBy` / `UpdatedBy` are plain nullable `Guid`s with no foreign key, so retiring a user never cascades into historical rows. `IsActive` is a soft-state flag only; there is no global query filter, so existing queries are unchanged until a caller opts in.
+
+Because the project initializes the schema with `EnsureCreated` rather than migrations (ADR-003), this change does not alter an existing database. Development and test databases are recreated automatically; a deployed database must be dropped and reseeded or altered by hand. Introducing EF migrations is the natural follow-up.
