@@ -188,20 +188,24 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
 
     public async Task RemoveMemberAsync(Guid userId, Guid projectId, Guid memberUserId, CancellationToken cancellationToken)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var project = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
-        if (project.OwnerId == memberUserId)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            throw new AppException(409, "Owner protected", "Transfer ownership before removing the project owner.");
-        }
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var project = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+            if (project.OwnerId == memberUserId)
+            {
+                throw new AppException(409, "Owner protected", "Transfer ownership before removing the project owner.");
+            }
 
-        var membership = await dbContext.ProjectMembers.SingleOrDefaultAsync(x => x.ProjectId == projectId && x.UserId == memberUserId, cancellationToken) ?? throw NotFound();
-        dbContext.ProjectMembers.Remove(membership);
-        await dbContext.WorkItems.Where(x => x.ProjectId == projectId && x.AssigneeId == memberUserId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AssigneeId, (Guid?)null), cancellationToken);
-        AddAudit(userId, "ProjectMemberRemoved", projectId, new { MemberUserId = memberUserId, project.Name });
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            var membership = await dbContext.ProjectMembers.SingleOrDefaultAsync(x => x.ProjectId == projectId && x.UserId == memberUserId, cancellationToken) ?? throw NotFound();
+            dbContext.ProjectMembers.Remove(membership);
+            await dbContext.WorkItems.Where(x => x.ProjectId == projectId && x.AssigneeId == memberUserId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AssigneeId, (Guid?)null), cancellationToken);
+            AddAudit(userId, "ProjectMemberRemoved", projectId, new { MemberUserId = memberUserId, project.Name });
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task<IReadOnlyCollection<WorkItemCommentSummary>> ListCommentsAsync(Guid userId, Guid projectId, Guid workItemId, CancellationToken cancellationToken)

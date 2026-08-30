@@ -125,35 +125,43 @@ public sealed class AuthService(
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var stored = await dbContext.PasswordResetTokens.Include(x => x.User)
-            .SingleOrDefaultAsync(x => x.TokenHash == HashToken(request.Token), cancellationToken);
-        if (stored is null || stored.UsedAt is not null || stored.ExpiresAt <= DateTimeOffset.UtcNow)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            throw new AppException(400, "Invalid reset token", "The password reset link is invalid or expired.");
-        }
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var stored = await dbContext.PasswordResetTokens.Include(x => x.User)
+                .SingleOrDefaultAsync(x => x.TokenHash == HashToken(request.Token), cancellationToken);
+            if (stored is null || stored.UsedAt is not null || stored.ExpiresAt <= DateTimeOffset.UtcNow)
+            {
+                throw new AppException(400, "Invalid reset token", "The password reset link is invalid or expired.");
+            }
 
-        stored.User.PasswordHash = passwordHasher.HashPassword(stored.User, request.NewPassword);
-        stored.UsedAt = DateTimeOffset.UtcNow;
-        await RevokeAllTokensAsync(stored.UserId, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            stored.User.PasswordHash = passwordHasher.HashPassword(stored.User, request.NewPassword);
+            stored.UsedAt = DateTimeOffset.UtcNow;
+            await RevokeAllTokensAsync(stored.UserId, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var user = await dbContext.Users.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
-            ?? throw new AppException(404, "User not found", "The current user no longer exists.");
-        if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            throw new AppException(400, "Current password is incorrect", "Enter the current password and try again.");
-        }
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            var user = await dbContext.Users.SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+                ?? throw new AppException(404, "User not found", "The current user no longer exists.");
+            if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
+            {
+                throw new AppException(400, "Current password is incorrect", "Enter the current password and try again.");
+            }
 
-        user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
-        await RevokeAllTokensAsync(user.Id, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            user.PasswordHash = passwordHasher.HashPassword(user, request.NewPassword);
+            await RevokeAllTokensAsync(user.Id, cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task<UserSummary> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken)
