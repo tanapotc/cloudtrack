@@ -1,0 +1,268 @@
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.eyebrow {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+h1 {
+  margin: 7px 0 6px;
+  color: #0f172a;
+  font-size: 30px;
+  letter-spacing: -0.035em;
+}
+.page-heading p,
+.create-panel p {
+  margin: 0;
+  color: #64748b;
+}
+.page-heading button {
+  height: 42px;
+  border-radius: 10px;
+}
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin: 26px 0 18px;
+}
+.toolbar mat-form-field:first-child {
+  width: min(390px, 100%);
+}
+.toolbar mat-form-field:last-child {
+  width: 165px;
+}
+.toolbar mat-icon {
+  margin-right: 9px;
+  color: #94a3b8;
+}
+.create-panel {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 30px;
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+.create-panel h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.create-panel p {
+  font-size: 12px;
+}
+.create-panel form {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr auto;
+  gap: 10px;
+  align-items: start;
+}
+.create-panel form > div {
+  display: flex;
+  padding-top: 5px;
+}
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.project-card {
+  display: block;
+  min-height: 240px;
+  padding: 20px;
+  border: 1px solid #e5e9f0;
+  border-radius: 16px;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+  transition: 0.18s ease;
+}
+.project-card:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 28px rgba(30, 64, 175, 0.09);
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.project-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #2563eb;
+  background: #eff6ff;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 20px;
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.status.active {
+  color: #047857;
+  background: #ecfdf5;
+}
+.status.active i {
+  background: #10b981;
+}
+.status.planning {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+.status.planning i {
+  background: #3b82f6;
+}
+.status.completed {
+  color: #6d28d9;
+  background: #f5f3ff;
+}
+.status.completed i {
+  background: #8b5cf6;
+}
+.project-card h2 {
+  margin: 18px 0 7px;
+  color: #172033;
+  font-size: 17px;
+}
+.project-card > p {
+  height: 40px;
+  margin: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.progress {
+  margin-top: 22px;
+}
+.progress span {
+  color: #64748b;
+  font-size: 11px;
+}
+.progress strong {
+  color: #334155;
+}
+.progress > div {
+  height: 5px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #e9edf4;
+}
+.progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+}
+.project-card footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 15px;
+  border-top: 1px solid #f0f2f6;
+  color: #94a3b8;
+  font-size: 10px;
+}
+.project-card footer span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.project-card footer mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+.state {
+  min-height: 360px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  color: #64748b;
+}
+.state > mat-icon {
+  width: 42px;
+  height: 42px;
+  font-size: 42px;
+  color: #94a3b8;
+}
+.empty-icon {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: #2563eb;
+  background: #eff6ff;
+}
+.empty-icon mat-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 34px;
+}
+.state h2 {
+  margin-bottom: 0;
+  color: #334155;
+}
+.state p {
+  max-width: 420px;
+}
+.state button {
+  margin-top: 8px;
+}
+@media (max-width: 1100px) {
+  .project-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .create-panel {
+    grid-template-columns: 1fr;
+  }
+  .create-panel form {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 620px) {
+  .page-heading {
+    display: block;
+  }
+  .page-heading button {
+    margin-top: 16px;
+  }
+  .toolbar {
+    display: grid;
+  }
+  .toolbar mat-form-field,
+  .toolbar mat-form-field:first-child,
+  .toolbar mat-form-field:last-child {
+    width: 100%;
+  }
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+}

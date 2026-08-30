@@ -1,0 +1,110 @@
+<a class="back" routerLink="/projects"><mat-icon>arrow_back</mat-icon>All projects</a>
+@if (loading()) {
+  <div class="state"><mat-spinner diameter="34" /></div>
+} @else if (project(); as item) {
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">PROJECT DETAIL</span>
+      <h1>{{ item.name }}</h1>
+      <p>{{ item.description }}</p>
+    </div>
+    <button mat-flat-button (click)="showTaskForm.set(true)">
+      <mat-icon>add</mat-icon>Add task
+    </button>
+  </div>
+  <section class="summary">
+    <div>
+      <span>Status</span><strong>{{ statusLabel(item.status) }}</strong>
+    </div>
+    <div>
+      <span>Tasks</span><strong>{{ item.workItems.length }}</strong>
+    </div>
+    <div>
+      <span>Created</span><strong>{{ item.createdAt | date: 'MMM d, y' }}</strong>
+    </div>
+    <div>
+      <span>Version</span><strong>v{{ item.version }}</strong>
+    </div>
+  </section>
+  @if (showTaskForm()) {
+    <section class="task-form">
+      <h2>Add a task</h2>
+      <form [formGroup]="form" (ngSubmit)="createTask()">
+        <mat-form-field appearance="outline"
+          ><mat-label>Task title</mat-label
+          ><input matInput formControlName="title" /></mat-form-field
+        ><mat-form-field appearance="outline"
+          ><mat-label>Description</mat-label
+          ><input matInput formControlName="description" /></mat-form-field
+        ><mat-form-field appearance="outline"
+          ><mat-label>Priority</mat-label
+          ><mat-select formControlName="priority"
+            ><mat-option [value]="0">Low</mat-option><mat-option [value]="1">Medium</mat-option
+            ><mat-option [value]="2">High</mat-option
+            ><mat-option [value]="3">Critical</mat-option></mat-select
+          ></mat-form-field
+        >
+        <div>
+          <button mat-button type="button" (click)="showTaskForm.set(false)">Cancel</button
+          ><button mat-flat-button type="submit" [disabled]="form.invalid">Add task</button>
+        </div>
+      </form>
+    </section>
+  }
+  <div class="board-head">
+    <div>
+      <h2>Task board</h2>
+      <p>Move work through a clear delivery flow.</p>
+    </div>
+  </div>
+  <section class="board">
+    @for (column of columns; track column.status) {
+      <div class="column">
+        <header>
+          <span><i [class]="column.tone"></i>{{ column.label }}</span
+          ><b>{{ tasksFor(column.status).length }}</b>
+        </header>
+        <div class="cards">
+          @for (task of tasksFor(column.status); track task.id) {
+            <article>
+              <div class="priority" [class]="priorityClass(task.priority)">
+                {{ priorityLabel(task.priority) }}
+              </div>
+              <h3>{{ task.title }}</h3>
+              <p>{{ task.description || 'No description' }}</p>
+              <footer>
+                @if (task.dueDate) {
+                  <span><mat-icon>calendar_today</mat-icon>{{ task.dueDate | date: 'MMM d' }}</span>
+                } @else {
+                  <span>No due date</span>
+                }
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="statusMenu"
+                  aria-label="Change task status"
+                >
+                  <mat-icon>more_horiz</mat-icon>
+                </button>
+              </footer>
+              <mat-menu #statusMenu="matMenu">
+                @for (target of columns; track target.status) {
+                  <button mat-menu-item (click)="moveTask(task, target.status)">
+                    {{ target.label }}
+                  </button>
+                }
+              </mat-menu>
+            </article>
+          } @empty {
+            <div class="column-empty">No tasks</div>
+          }
+        </div>
+      </div>
+    }
+  </section>
+} @else {
+  <div class="state">
+    <mat-icon>error_outline</mat-icon>
+    <h2>Project not found</h2>
+    <a mat-stroked-button routerLink="/projects">Back to projects</a>
+  </div>
+}

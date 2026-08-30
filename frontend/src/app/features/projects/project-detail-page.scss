@@ -1,0 +1,260 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+.back mat-icon {
+  font-size: 17px;
+  width: 17px;
+  height: 17px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.eyebrow {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+h1 {
+  margin: 7px 0 7px;
+  color: #0f172a;
+  font-size: 30px;
+  letter-spacing: -0.035em;
+}
+.page-heading p,
+.board-head p {
+  margin: 0;
+  color: #64748b;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin: 27px 0 22px;
+  border: 1px solid #e5e9f0;
+  border-radius: 14px;
+  background: #fff;
+}
+.summary div {
+  padding: 17px 20px;
+  border-right: 1px solid #edf0f5;
+}
+.summary div:last-child {
+  border: 0;
+}
+.summary span,
+.summary strong {
+  display: block;
+}
+.summary span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.summary strong {
+  margin-top: 5px;
+  color: #334155;
+  font-size: 14px;
+}
+.task-form {
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+.task-form h2 {
+  margin: 0 0 15px;
+  font-size: 16px;
+}
+.task-form form {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr 150px auto;
+  gap: 10px;
+}
+.task-form form > div {
+  display: flex;
+  padding-top: 5px;
+}
+.board-head {
+  margin: 28px 0 14px;
+}
+.board-head h2 {
+  margin: 0 0 4px;
+  color: #172033;
+  font-size: 17px;
+}
+.board-head p {
+  font-size: 12px;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 14px;
+  overflow-x: auto;
+}
+.column {
+  min-width: 220px;
+  padding: 12px;
+  border: 1px solid #e8ebf1;
+  border-radius: 14px;
+  background: #eef1f6;
+}
+.column > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 3px 12px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.column > header span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.column > header i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.column > header i.blue {
+  background: #3b82f6;
+}
+.column > header i.amber {
+  background: #f59e0b;
+}
+.column > header i.violet {
+  background: #8b5cf6;
+}
+.column > header i.green {
+  background: #10b981;
+}
+.column > header b {
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #dfe4ed;
+  font-size: 10px;
+}
+.cards {
+  display: grid;
+  gap: 9px;
+}
+.cards article {
+  padding: 14px;
+  border: 1px solid #e3e7ee;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+.priority {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 7px;
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 8px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+.priority.high,
+.priority.critical {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+.priority.medium {
+  color: #b45309;
+  background: #fffbeb;
+}
+.cards h3 {
+  margin: 11px 0 5px;
+  color: #263247;
+  font-size: 13px;
+}
+.cards p {
+  min-height: 32px;
+  margin: 0;
+  color: #7c899d;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.cards footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid #f0f2f6;
+  color: #94a3b8;
+  font-size: 9px;
+}
+.cards footer span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cards footer mat-icon {
+  font-size: 12px;
+  width: 12px;
+  height: 12px;
+}
+.cards footer button {
+  width: 28px;
+  height: 28px;
+}
+.column-empty {
+  padding: 30px 8px;
+  text-align: center;
+  color: #a3adbd;
+  font-size: 11px;
+}
+.state {
+  min-height: 350px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  color: #64748b;
+}
+.state > mat-icon {
+  font-size: 42px;
+  width: 42px;
+  height: 42px;
+}
+.state h2 {
+  color: #334155;
+}
+@media (max-width: 900px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .summary div:nth-child(2) {
+    border-right: 0;
+  }
+  .summary div:nth-child(-n + 2) {
+    border-bottom: 1px solid #edf0f5;
+  }
+  .task-form form {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .page-heading {
+    display: block;
+  }
+  .page-heading button {
+    margin-top: 16px;
+  }
+}

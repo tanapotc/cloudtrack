@@ -1,0 +1,92 @@
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">PROJECTS</span>
+    <h1>Project workspace</h1>
+    <p>Plan, track, and ship work with your team.</p>
+  </div>
+  <button mat-flat-button (click)="showCreate.set(true)">
+    <mat-icon>add</mat-icon>New project
+  </button>
+</div>
+<section class="toolbar">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+    ><mat-icon matPrefix>search</mat-icon
+    ><input matInput [formControl]="searchControl" placeholder="Search projects" /></mat-form-field
+  ><mat-form-field appearance="outline" subscriptSizing="dynamic"
+    ><mat-select [formControl]="statusControl" aria-label="Filter status"
+      ><mat-option value="">All statuses</mat-option><mat-option value="0">Planning</mat-option
+      ><mat-option value="1">Active</mat-option><mat-option value="2">On hold</mat-option
+      ><mat-option value="3">Completed</mat-option></mat-select
+    ></mat-form-field
+  >
+</section>
+@if (showCreate()) {
+  <section class="create-panel">
+    <div>
+      <h2>Create a project</h2>
+      <p>Give the team a clear outcome to work toward.</p>
+    </div>
+    <form [formGroup]="createForm" (ngSubmit)="createProject()">
+      <mat-form-field appearance="outline"
+        ><mat-label>Project name</mat-label
+        ><input matInput formControlName="name" /></mat-form-field
+      ><mat-form-field appearance="outline"
+        ><mat-label>Description</mat-label
+        ><textarea matInput formControlName="description" rows="2"></textarea>
+      </mat-form-field>
+      <div>
+        <button mat-button type="button" (click)="showCreate.set(false)">Cancel</button
+        ><button mat-flat-button type="submit" [disabled]="createForm.invalid || saving()">
+          Create project
+        </button>
+      </div>
+    </form>
+  </section>
+}
+@if (loading()) {
+  <div class="state">
+    <mat-spinner diameter="34" />
+    <p>Loading projects…</p>
+  </div>
+} @else if (error()) {
+  <div class="state">
+    <mat-icon>cloud_off</mat-icon>
+    <h2>Couldn’t load projects</h2>
+    <p>{{ error() }}</p>
+    <button mat-stroked-button (click)="load()">Try again</button>
+  </div>
+} @else if (!projects().length) {
+  <div class="state empty">
+    <span class="empty-icon"><mat-icon>folder_open</mat-icon></span>
+    <h2>No projects yet</h2>
+    <p>Create your first project to turn this blank workspace into a delivery plan.</p>
+    <button mat-flat-button (click)="showCreate.set(true)">
+      <mat-icon>add</mat-icon>Create a project
+    </button>
+  </div>
+} @else {
+  <section class="project-grid">
+    @for (project of projects(); track project.id) {
+      <a class="project-card" [routerLink]="['/projects', project.id]"
+        ><div class="card-top">
+          <span class="project-icon"><mat-icon>folder</mat-icon></span
+          ><span class="status" [class]="statusClass(project.status)"
+            ><i></i>{{ statusLabel(project.status) }}</span
+          >
+        </div>
+        <h2>{{ project.name }}</h2>
+        <p>{{ project.description || 'No description provided.' }}</p>
+        <div class="progress">
+          <span
+            ><strong>{{ project.completedTaskCount }}</strong> / {{ project.taskCount }} tasks</span
+          >
+          <div><i [style.width.%]="progress(project)"></i></div>
+        </div>
+        <footer>
+          <span><mat-icon>group</mat-icon>{{ project.memberCount }} members</span
+          ><span>Updated {{ project.updatedAt | date: 'MMM d' }}</span>
+        </footer></a
+      >
+    }
+  </section>
+}
