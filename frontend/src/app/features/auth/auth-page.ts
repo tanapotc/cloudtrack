@@ -62,12 +62,12 @@ type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
 
         @if (mode() !== 'reset') {
           <mat-form-field appearance="outline">
-            <mat-label>Work email</mat-label><mat-icon matPrefix>mail_outline</mat-icon>
+            <mat-label>Email</mat-label><mat-icon matPrefix>mail_outline</mat-icon>
             <input
               matInput
               formControlName="email"
               autocomplete="email"
-              placeholder="you@company.com"
+              placeholder="you@example.com"
             />
             @if (form.controls.email.touched && form.controls.email.invalid) {
               <mat-error>Enter a valid email address</mat-error>
@@ -107,9 +107,43 @@ type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
           </mat-form-field>
         }
 
+        @if (mode() === 'register') {
+          <mat-form-field appearance="outline">
+            <mat-label>Confirm password</mat-label><mat-icon matPrefix>lock_reset</mat-icon>
+            <input
+              matInput
+              [type]="showConfirmPassword() ? 'text' : 'password'"
+              formControlName="confirmPassword"
+              autocomplete="new-password"
+            />
+            <button
+              mat-icon-button
+              matSuffix
+              type="button"
+              (click)="showConfirmPassword.set(!showConfirmPassword())"
+              [attr.aria-label]="
+                showConfirmPassword() ? 'Hide confirm password' : 'Show confirm password'
+              "
+            >
+              <mat-icon>{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (
+              form.controls.confirmPassword.touched &&
+              form.controls.confirmPassword.hasError('required')
+            ) {
+              <mat-error>Confirm your password</mat-error>
+            } @else if (
+              form.controls.confirmPassword.touched &&
+              form.controls.confirmPassword.hasError('passwordMismatch')
+            ) {
+              <mat-error>Passwords do not match</mat-error>
+            }
+          </mat-form-field>
+        }
+
         @if (mode() === 'login') {
           <div class="form-meta">
-            <span><mat-icon>verified_user</mat-icon> Secure cookie recovery</span
+            <label><input type="checkbox" /> Keep me signed in</label
             ><a routerLink="/auth/forgot-password">Forgot password?</a>
           </div>
         }
@@ -204,16 +238,13 @@ type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
       color: #64748b;
       font-size: 13px;
     }
-    .form-meta span {
+    .form-meta label {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .form-meta mat-icon {
-      width: 17px;
-      height: 17px;
-      font-size: 17px;
-      color: #16a34a;
+    input[type='checkbox'] {
+      accent-color: #2563eb;
     }
     a {
       color: #2563eb;
@@ -300,6 +331,7 @@ export class AuthPage {
   readonly success = signal('');
   readonly developmentToken = signal('');
   readonly showPassword = signal(false);
+  readonly showConfirmPassword = signal(false);
   readonly title = computed(
     () =>
       ({
@@ -321,7 +353,7 @@ export class AuthPage {
   readonly subtitle = computed(
     () =>
       ({
-        login: 'Enter your details to continue to your workspace.',
+        login: 'Sign in to pick up where you left off.',
         register: 'Start organizing projects in less than a minute.',
         forgot: 'We’ll prepare a secure reset link if the account exists.',
         reset: 'Use the reset token and choose a strong new password.',
@@ -341,13 +373,24 @@ export class AuthPage {
     displayName: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', Validators.required],
     token: [this.route.snapshot.queryParamMap.get('token') ?? '', Validators.required],
   });
 
   submit(): void {
+    const value = this.form.getRawValue();
+    const confirmPassword = this.form.controls.confirmPassword;
+    if (this.mode() === 'register' && value.password !== value.confirmPassword) {
+      confirmPassword.setErrors({ ...confirmPassword.errors, passwordMismatch: true });
+    } else if (confirmPassword.hasError('passwordMismatch')) {
+      const { passwordMismatch: _passwordMismatch, ...remainingErrors } =
+        confirmPassword.errors ?? {};
+      confirmPassword.setErrors(Object.keys(remainingErrors).length ? remainingErrors : null);
+    }
+
     const requiredControls =
       this.mode() === 'register'
-        ? ['displayName', 'email', 'password']
+        ? ['displayName', 'email', 'password', 'confirmPassword']
         : this.mode() === 'forgot'
           ? ['email']
           : this.mode() === 'reset'
@@ -361,7 +404,6 @@ export class AuthPage {
     this.loading.set(true);
     this.error.set('');
     this.success.set('');
-    const value = this.form.getRawValue();
     const request: Observable<
       AuthResponse | { message: string; developmentResetToken?: string } | void
     > =
