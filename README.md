@@ -31,29 +31,35 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 
 ## Architecture
 
+One Azure App Service hosts the ASP.NET Core API and serves the compiled Angular bundle from the same origin. A single origin removes the need for a separate Static Web App, a container runtime, and production CORS.
+
 ```mermaid
-flowchart TB
-  Browser[Web browser]
-
-  subgraph AppService[Azure App Service · Linux F1]
-    Static[Angular 22 SPA<br/>compiled into wwwroot]
-    API[ASP.NET Core 8 API]
-    Static -->|same-origin /api requests| API
-    API --> Application[Application contracts]
-    Application --> Domain[Domain entities and rules]
-    API --> Infrastructure[EF Core + identity infrastructure]
-  end
-
-  Browser -->|HTTPS| Static
-  Browser -->|HTTPS /api| API
-  Infrastructure -->|encrypted connection| AzureSQL[(Azure SQL Database<br/>free/serverless)]
-
-  GitHub[GitHub Actions] -->|OIDC · ZIP deploy| AppService
-  Bicep[Azure Bicep] -->|provisions| AppService
-  Bicep -->|provisions| AzureSQL
+flowchart LR
+  Browser["Browser<br/>Angular 22 SPA"]
+  API["Azure App Service · Linux F1<br/>ASP.NET Core 8 API + static bundle"]
+  DB[("Azure SQL<br/>serverless")]
+  Browser -- "HTTPS · bundle + same-origin /api" --> API
+  API -- "encrypted connection" --> DB
 ```
 
-The production deployment uses one App Service for both the Angular bundle and the API. Serving both from one origin avoids a separate Static Web App, container runtime, and production CORS dependency. Every environment uses the same database engine: SQL Server LocalDB for development and automated tests, and Azure SQL in production. Integration and E2E runs create a disposable database per run and drop it on teardown; CI starts an ephemeral SQL Server 2022 container for the same purpose.
+The backend is layered so business rules stay free of framework and data-access concerns:
+
+```mermaid
+flowchart LR
+  Api["Api<br/>HTTP boundary, composition root"]
+  Infrastructure["Infrastructure<br/>EF Core, identity, services"]
+  Application["Application<br/>use-case contracts"]
+  Domain["Domain<br/>entities and rules, no dependencies"]
+  Api --> Application
+  Api --> Infrastructure
+  Infrastructure --> Application
+  Application --> Domain
+  Infrastructure --> Domain
+```
+
+Azure SQL is the only database engine in every environment. Development and CI use SQL Server LocalDB or an ephemeral SQL Server 2022 container and rebuild a throwaway database per run. The App Service and database are provisioned by [Bicep](infra/main.bicep) and the app is delivered as a ZIP package.
+
+### Authentication flow
 
 ```mermaid
 sequenceDiagram
@@ -61,33 +67,21 @@ sequenceDiagram
   participant API as ASP.NET Core API
   participant SQL as Azure SQL
 
-  Browser->>API: Register or sign in over HTTPS
-  API->>SQL: Validate identity and store hashed credentials
-  API-->>Browser: Short-lived access token in response memory
-  API-->>Browser: Rotated refresh token in HttpOnly cookie
-  Browser->>API: Authorized /api request with bearer token
-  API-->>Browser: Protected resource
-  Browser->>API: Refresh after reload or access-token expiry
-  API->>SQL: Rotate and revoke refresh-token record
-  API-->>Browser: New access token + replacement cookie
+  Browser->>API: Sign in or register (HTTPS)
+  API->>SQL: Verify credentials, store the password hash
+  API-->>Browser: Access token (JSON body, held in memory)
+  API-->>Browser: Refresh token (Secure, HttpOnly cookie)
+  Browser->>API: /api call with the Bearer access token
+  Browser->>API: Refresh on reload or token expiry
+  API->>SQL: Rotate and revoke the previous refresh token
+  API-->>Browser: New access token and replacement cookie
 ```
 
-The browser never receives database credentials or the JWT signing key. Non-secret Angular configuration is compiled with the frontend, while connection strings and signing settings are injected only into the backend through protected App Service application settings. The access token stays in memory; the refresh token is stored in a `Secure`, `HttpOnly`, same-site cookie.
+The browser never receives the connection string or the JWT signing key; those are injected only into the backend as protected App Service settings. Changing a password revokes every refresh token.
 
 ### Frontend component structure
 
-Page and layout components keep TypeScript logic, Angular markup, and component-scoped styling in co-located files:
-
-```text
-auth/
-  auth-page.ts       Signals, reactive form state, validation, and service calls
-  auth-page.html     Login, register, forgot-password, and reset-password markup
-  auth-page.scss     Authentication page styles and responsive rules
-```
-
-The same `.ts` / `.html` / `.scss` convention is used by layouts, dashboard, profile, admin, projects, and shared feature pages. Angular's built-in style encapsulation remains enabled, while `src/styles.scss` is reserved for the Material theme, typography, reset rules, and genuinely global styles. The root `app.ts` intentionally keeps its single `<router-outlet />` inline because extracting a one-line template would add indirection without improving maintainability.
-
-`angular.json` configures future standalone components to use external HTML and SCSS by default (`inlineTemplate: false`, `inlineStyle: false`, `style: scss`).
+Every page and layout keeps its logic, markup, and styles in co-located `*.ts` / `*.html` / `*.scss` files (`angular.json` makes external templates and SCSS the default for new components). Component style encapsulation stays on; `src/styles.scss` holds only the Material theme, typography, and reset.
 
 ## Technology
 
