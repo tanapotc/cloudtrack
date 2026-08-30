@@ -25,7 +25,7 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 - `Admin`, `Manager`, and `Member` roles with protected user and role management.
 - Project and task management with audit history, search, filters, paging, and optimistic concurrency.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
-- Layered ASP.NET Core backend with SQLite for lightweight local tests and SQL Server in Azure.
+- Layered ASP.NET Core backend running SQL Server everywhere: LocalDB for development and tests, Azure SQL in production.
 - App Service ZIP delivery without Docker, GitHub Actions OIDC, secret scanning, health probes, and Bicep infrastructure.
 
 ## Architecture
@@ -52,7 +52,7 @@ flowchart TB
   Bicep -->|provisions| AzureSQL
 ```
 
-The production deployment uses one App Service for both the Angular bundle and the API. Serving both from one origin avoids a separate Static Web App, container runtime, and production CORS dependency. Azure SQL is the only production database; SQLite is limited to isolated local and automated test runs.
+The production deployment uses one App Service for both the Angular bundle and the API. Serving both from one origin avoids a separate Static Web App, container runtime, and production CORS dependency. Every environment uses the same database engine: SQL Server LocalDB for development and automated tests, and Azure SQL in production. Integration and E2E runs create a disposable database per run and drop it on teardown; CI starts an ephemeral SQL Server 2022 container for the same purpose.
 
 ```mermaid
 sequenceDiagram
@@ -94,19 +94,19 @@ The same `.ts` / `.html` / `.scss` convention is used by layouts, dashboard, pro
 | --- | --- |
 | Web | Angular 22, standalone components, Angular Material, signals |
 | API | ASP.NET Core 8, controllers, Problem Details, rate limiting |
-| Data | EF Core 8, SQLite, SQL Server |
+| Data | EF Core 8, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
-| Quality | xUnit, ASP.NET integration tests, Vitest, Playwright |
+| Quality | xUnit, ASP.NET integration tests, Vitest, Playwright, Prettier |
 | Delivery | App Service ZIP, GitHub Actions OIDC, Gitleaks, Azure Bicep; optional Docker |
 | Azure | Linux App Service Free F1, Azure SQL Database Free/Serverless |
 
 ## Run locally
 
-Prerequisites: .NET SDK 8, Node.js 24, and npm. Docker is optional.
+Prerequisites: .NET SDK 8, Node.js 24, npm, and SQL Server. The default connection string targets SQL Server LocalDB (installed with the .NET SDK "Data storage and processing" workload or Visual Studio); to use a container or another instance instead, override `ConnectionStrings__DefaultConnection`. Docker is optional and can also supply SQL Server through Docker Compose.
 
 ### 1. Configure the API safely
 
-Do not put a real key or password in `appsettings.json`. Store the local signing key outside Git with .NET user-secrets:
+Do not put a real key or password in `appsettings.json`. Store the local signing key outside Git with .NET user-secrets. EF Core creates the schema and seeds roles, permissions, and the admin account on first run:
 
 ```powershell
 cd backend/src/CloudTrack.Api
@@ -143,11 +143,14 @@ dotnet test backend/CloudTrack.sln --configuration Release
 cd frontend
 npm test -- --watch=false
 npm run build
-npm run e2e
+npx prettier --check "src/**/*.{ts,html,scss}" "e2e/**/*.ts" angular.json
 npm audit --omit=dev
+npm run e2e
 ```
 
-CI repeats these checks and scans the full Git history for secrets. Azure delivery builds a ZIP package and is gated by the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment.
+The backend integration tests and Playwright E2E run against SQL Server; both create and drop their own database, so a reachable SQL Server LocalDB (or a `CLOUDTRACK_TEST_SQLSERVER` / `CLOUDTRACK_E2E_SQLSERVER` override) is required.
+
+CI repeats these checks, starts an ephemeral SQL Server 2022 container for the test and E2E jobs, and scans the full Git history for secrets. Azure delivery builds a ZIP package and is gated by the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment.
 
 ## Security and configuration
 
