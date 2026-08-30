@@ -15,6 +15,12 @@ test('a new user can register and create a project', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Confirm password' }).fill('Portfolio!234');
   await page.getByRole('button', { name: 'Create account' }).click();
 
+  await expect(page).toHaveURL(/\/auth\/login/);
+  await expect(page.getByText('Account created. Please sign in.')).toBeVisible();
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill('Portfolio!234');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(
     page.getByRole('heading', { name: /Good (morning|afternoon|evening), Portfolio/ }),
@@ -76,7 +82,7 @@ test('portfolio demo reset link completes password recovery', async ({ page }) =
   await page.getByLabel('Password', { exact: true }).fill(originalPassword);
   await page.getByRole('textbox', { name: 'Confirm password' }).fill(originalPassword);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('Account created. Please sign in.')).toBeVisible();
 
   await page.context().clearCookies();
   await page.goto('/auth/forgot-password');

@@ -1,6 +1,11 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
+import { Observable } from 'rxjs';
+import { AdminApi } from '../api/services/admin-api';
+import { DashboardApi } from '../api/services/dashboard-api';
+import { ProjectsApi } from '../api/services/projects-api';
+import type { ProjectStatus } from '../api/models/project-status';
+import type { WorkItemPriority } from '../api/models/work-item-priority';
+import type { WorkItemStatus } from '../api/models/work-item-status';
 import {
   DashboardSummary,
   ManagedUserSummary,
@@ -11,27 +16,37 @@ import {
   WorkItemSummary,
 } from './models';
 
+/**
+ * Thin facade over the generated OpenAPI services so feature components keep a small,
+ * task-shaped surface instead of the generated `{ body }` parameter objects.
+ */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private readonly http = inject(HttpClient);
+  private readonly projectsApi = inject(ProjectsApi);
+  private readonly adminApi = inject(AdminApi);
+  private readonly dashboardApi = inject(DashboardApi);
 
-  dashboard() {
-    return this.http.get<DashboardSummary>(`${environment.apiUrl}/dashboard`);
+  dashboard(): Observable<DashboardSummary> {
+    return this.dashboardApi.dashboardGet() as Observable<DashboardSummary>;
   }
 
-  projects(search = '', status = '') {
-    let params = new HttpParams().set('page', 1).set('pageSize', 20);
-    if (search) params = params.set('search', search);
-    if (status) params = params.set('status', status);
-    return this.http.get<PagedResult<ProjectSummary>>(`${environment.apiUrl}/projects`, { params });
+  projects(search = '', status = ''): Observable<PagedResult<ProjectSummary>> {
+    return this.projectsApi.projectsList({
+      search: search || undefined,
+      status: status === '' ? undefined : (Number(status) as ProjectStatus),
+      page: 1,
+      pageSize: 20,
+    }) as Observable<PagedResult<ProjectSummary>>;
   }
 
-  project(id: string) {
-    return this.http.get<ProjectDetails>(`${environment.apiUrl}/projects/${id}`);
+  project(id: string): Observable<ProjectDetails> {
+    return this.projectsApi.projectsGet({ projectId: id }) as Observable<ProjectDetails>;
   }
 
-  createProject(name: string, description: string) {
-    return this.http.post<ProjectDetails>(`${environment.apiUrl}/projects`, { name, description });
+  createProject(name: string, description: string): Observable<ProjectDetails> {
+    return this.projectsApi.projectsCreate({
+      body: { name, description },
+    }) as Observable<ProjectDetails>;
   }
 
   createTask(
@@ -40,37 +55,49 @@ export class ApiService {
     description: string,
     priority: number,
     dueDate: string | null,
-  ) {
-    return this.http.post<WorkItemSummary>(`${environment.apiUrl}/projects/${projectId}/tasks`, {
-      title,
-      description,
-      priority,
-      dueDate,
-    });
+  ): Observable<WorkItemSummary> {
+    return this.projectsApi.projectsCreateTask({
+      projectId,
+      body: { title, description, priority: priority as WorkItemPriority, dueDate },
+    }) as Observable<WorkItemSummary>;
   }
 
-  updateTask(projectId: string, task: WorkItemSummary, status: number) {
-    return this.http.put<WorkItemSummary>(
-      `${environment.apiUrl}/projects/${projectId}/tasks/${task.id}`,
-      { ...task, status },
-    );
+  updateTask(
+    projectId: string,
+    task: WorkItemSummary,
+    status: number,
+  ): Observable<WorkItemSummary> {
+    return this.projectsApi.projectsUpdateTask({
+      projectId,
+      taskId: task.id,
+      body: {
+        title: task.title,
+        description: task.description,
+        status: status as WorkItemStatus,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        assigneeId: task.assigneeId,
+        version: task.version,
+      },
+    }) as Observable<WorkItemSummary>;
   }
 
-  users(search = '') {
-    let params = new HttpParams().set('page', 1).set('pageSize', 30);
-    if (search) params = params.set('search', search);
-    return this.http.get<PagedResult<ManagedUserSummary>>(`${environment.apiUrl}/admin/users`, {
-      params,
-    });
+  users(search = ''): Observable<PagedResult<ManagedUserSummary>> {
+    return this.adminApi.adminUsers({
+      search: search || undefined,
+      page: 1,
+      pageSize: 30,
+    }) as Observable<PagedResult<ManagedUserSummary>>;
   }
 
-  roles() {
-    return this.http.get<RoleSummary[]>(`${environment.apiUrl}/admin/roles`);
+  roles(): Observable<RoleSummary[]> {
+    return this.adminApi.adminRoles() as Observable<RoleSummary[]>;
   }
 
-  updateUserStatus(userId: string, isActive: boolean) {
-    return this.http.put<ManagedUserSummary>(`${environment.apiUrl}/admin/users/${userId}/status`, {
-      isActive,
-    });
+  updateUserStatus(userId: string, isActive: boolean): Observable<ManagedUserSummary> {
+    return this.adminApi.adminUpdateStatus({
+      userId,
+      body: { isActive },
+    }) as Observable<ManagedUserSummary>;
   }
 }

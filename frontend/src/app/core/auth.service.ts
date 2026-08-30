@@ -1,13 +1,12 @@
-import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, of, tap } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { AuthApi } from '../api/services/auth-api';
 import { AuthResponse, UserSummary } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = inject(HttpClient);
+  private readonly authApi = inject(AuthApi);
   private readonly router = inject(Router);
   private readonly accessTokenState = signal<string | null>(null);
   private readonly currentUserState = signal<UserSummary | null>(null);
@@ -25,49 +24,39 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(
-        `${environment.apiUrl}/auth/login`,
-        { email, password },
-        { withCredentials: true },
-      )
-      .pipe(tap((response) => this.storeSession(response)));
+    return this.authApi
+      .authLogin({ body: { email, password } })
+      .pipe(tap((response) => this.storeSession(response as AuthResponse)));
   }
 
   register(email: string, password: string, displayName: string): Observable<AuthResponse> {
     // Registration only persists the account; the user then signs in from the login page.
-    return this.http.post<AuthResponse>(
-      `${environment.apiUrl}/auth/register`,
-      { email, password, displayName },
-      { withCredentials: true },
-    );
+    return this.authApi.authRegister({
+      body: { email, password, displayName },
+    }) as Observable<AuthResponse>;
   }
 
   forgotPassword(email: string): Observable<{ message: string; developmentResetToken?: string }> {
-    return this.http.post<{ message: string; developmentResetToken?: string }>(
-      `${environment.apiUrl}/auth/forgot-password`,
-      { email },
+    return this.authApi.authForgotPassword({ body: { email } }).pipe(
+      map((result) => ({
+        message: result.message ?? '',
+        developmentResetToken: result.developmentResetToken ?? undefined,
+      })),
     );
   }
 
   resetPassword(token: string, newPassword: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/reset-password`, {
-      token,
-      newPassword,
-    });
+    return this.authApi.authResetPassword({ body: { token, newPassword } });
   }
 
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
-    return this.http.post<void>(`${environment.apiUrl}/auth/change-password`, {
-      currentPassword,
-      newPassword,
-    });
+    return this.authApi.authChangePassword({ body: { currentPassword, newPassword } });
   }
 
   refresh(): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(`${environment.apiUrl}/auth/refresh`, {}, { withCredentials: true })
-      .pipe(tap((response) => this.storeSession(response)));
+    return this.authApi
+      .authRefresh({ body: {} })
+      .pipe(tap((response) => this.storeSession(response as AuthResponse)));
   }
 
   restoreSession(): Observable<void> {
@@ -81,8 +70,8 @@ export class AuthService {
   }
 
   logout(): void {
-    this.http
-      .post(`${environment.apiUrl}/auth/logout`, {}, { withCredentials: true })
+    this.authApi
+      .authLogout()
       .pipe(
         finalize(() => {
           this.clearSession();

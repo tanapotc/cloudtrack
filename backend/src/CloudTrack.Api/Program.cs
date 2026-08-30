@@ -3,12 +3,15 @@ using System.Text;
 using System.Threading.RateLimiting;
 using CloudTrack.Api.Auth;
 using CloudTrack.Api.Errors;
+using CloudTrack.Api.Swagger;
 using CloudTrack.Infrastructure;
 using CloudTrack.Infrastructure.Auth;
 using CloudTrack.Infrastructure.Persistence;
 using CloudTrack.Application.Common;
 using CloudTrack.Application.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -17,13 +20,29 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // One response content type keeps the generated client's methods single-variant
+    // (no text/plain sibling of every JSON operation).
+    options.Filters.Add(new ProducesAttribute("application/json"));
+});
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "CloudTrack API", Version = "v1" });
+    // Reflect C# nullable reference types in the schema so the generated client's
+    // properties are non-optional where the API guarantees a value.
+    options.SupportNonNullableReferenceTypes();
+    options.UseAllOfToExtendReferenceSchemas();
+    options.SchemaFilter<RequireNonNullablePropertiesSchemaFilter>();
+    // Stable "<Controller>_<Action>" operation ids so the generated TypeScript client
+    // gets readable method names (login, createProject, ...) instead of path-derived ones.
+    options.CustomOperationIds(description =>
+        description.ActionDescriptor is ControllerActionDescriptor controllerAction
+            ? $"{controllerAction.ControllerName}_{controllerAction.ActionName}"
+            : null);
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",

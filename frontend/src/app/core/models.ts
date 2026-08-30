@@ -1,23 +1,14 @@
-export interface UserSummary {
-  id: string;
-  email: string;
-  displayName: string;
-  roles: string[];
-  permissions: string[];
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  expiresAt: string;
-  user: UserSummary;
-}
-
-export interface ProblemDetails {
-  title?: string;
-  detail?: string;
-  status?: number;
-  errors?: Record<string, string[]>;
-}
+// Response DTOs are re-exported from the generated OpenAPI client (`npm run api-generate`).
+export type { UserSummary } from '../api/models/user-summary';
+export type { AuthResponse } from '../api/models/auth-response';
+export type { ProjectSummary } from '../api/models/project-summary';
+export type { WorkItemSummary } from '../api/models/work-item-summary';
+export type { ProjectDetails } from '../api/models/project-details';
+export type { ProjectMemberSummary } from '../api/models/project-member-summary';
+export type { DashboardSummary } from '../api/models/dashboard-summary';
+export type { ActivitySummary } from '../api/models/activity-summary';
+export type { ManagedUserSummary } from '../api/models/managed-user-summary';
+export type { RoleSummary } from '../api/models/role-summary';
 
 export interface PagedResult<T> {
   items: T[];
@@ -27,55 +18,10 @@ export interface PagedResult<T> {
   totalPages: number;
 }
 
-export interface ProjectSummary {
-  id: string;
-  name: string;
-  description: string;
-  status: number;
-  taskCount: number;
-  completedTaskCount: number;
-  memberCount: number;
-  version: number;
-  updatedAt: string;
-}
-
-export interface WorkItemSummary {
-  id: string;
-  title: string;
-  description: string;
-  status: number;
-  priority: number;
-  dueDate: string | null;
-  assigneeId: string | null;
-  version: number;
-  commentCount: number;
-}
-
-export interface ProjectDetails extends ProjectSummary {
-  ownerId: string;
-  createdAt: string;
-  workItems: WorkItemSummary[];
-}
-
-export interface DashboardSummary {
-  projectCount: number;
-  activeProjectCount: number;
-  openTaskCount: number;
-  completedTaskCount: number;
-  dueSoonCount: number;
-  apiStatus: string;
-  recentActivity: { action: string; entityType: string; entityId?: string; occurredAt: string }[];
-}
-
-export interface ManagedUserSummary extends UserSummary {
-  isActive: boolean;
-  createdAt: string;
-  lastLoginAt: string | null;
-}
-
-export interface RoleSummary {
-  id: string;
-  name: string;
-  description: string;
-  userCount: number;
+// ASP.NET Core Problem Details are not part of the OpenAPI schema.
+export interface ProblemDetails {
+  title?: string;
+  detail?: string;
+  status?: number;
+  errors?: Record<string, string[]>;
 }

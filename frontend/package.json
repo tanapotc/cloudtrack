@@ -7,7 +7,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "swagger-export": "dotnet tool run swagger tofile --output openapi/cloudtrack.json ../backend/src/CloudTrack.Api/bin/Release/net8.0/CloudTrack.Api.dll v1",
+    "api-generate": "ng-openapi-gen"
   },
   "private": true,
   "packageManager": "npm@11.16.0",
@@ -30,6 +32,7 @@
     "@angular/compiler-cli": "^22.1.0",
     "@playwright/test": "^1.62.1",
     "jsdom": "^28.0.0",
+    "ng-openapi-gen": "^0.51.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"

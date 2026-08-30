@@ -1,9 +1,10 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { AuthResponse } from './models';
+import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
@@ -27,7 +28,7 @@ describe('AuthService', () => {
     sessionStorage.setItem('cloudtrack.user', '{}');
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         { provide: Router, useValue: { navigateByUrl: vi.fn() } },
       ],

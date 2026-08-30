@@ -36,6 +36,13 @@ jobs:
           dotnet ef migrations has-pending-model-changes
           --project backend/src/CloudTrack.Infrastructure
           --startup-project backend/src/CloudTrack.Infrastructure
+      - name: Verify the committed OpenAPI spec matches the API
+        run: |
+          dotnet tool run swagger tofile --output frontend/openapi/cloudtrack.json \
+            backend/src/CloudTrack.Api/bin/Release/net8.0/CloudTrack.Api.dll v1
+          git diff --exit-code -- frontend/openapi/cloudtrack.json
+        env:
+          Jwt__SigningKey: ci-swagger-export-key-with-32-characters
 
   frontend:
     runs-on: ubuntu-latest
@@ -50,6 +57,10 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - name: Verify the generated API client is current
+        run: |
+          npm run api-generate
+          git diff --exit-code -- src/app/api
       - run: npm test -- --watch=false
       - run: npm run build
       - run: npx prettier --check "src/**/*.{ts,html,scss}" "e2e/**/*.ts" angular.json

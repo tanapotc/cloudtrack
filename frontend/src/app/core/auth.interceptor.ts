@@ -6,9 +6,12 @@ import { AuthService } from './auth.service';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const token = auth.accessToken;
-  const authenticatedRequest = token
-    ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
-    : request;
+  // Auth endpoints exchange the refresh-token cookie, so they must send credentials.
+  const withCookies = request.url.includes('/auth/');
+  const authenticatedRequest = request.clone({
+    withCredentials: withCookies || request.withCredentials,
+    setHeaders: token ? { Authorization: `Bearer ${token}` } : {},
+  });
 
   return next(authenticatedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
