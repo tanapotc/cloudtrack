@@ -7,8 +7,11 @@ on:
     paths:
       - backend/**
       - frontend/**
-      - infra/**
-      - Dockerfile
+      - .github/workflows/deploy-azure.yml
+
+concurrency:
+  group: deploy-azure-dev
+  cancel-in-progress: false
 
 permissions:
   id-token: write
@@ -21,29 +24,57 @@ jobs:
     environment: azure-dev
     steps:
       - uses: actions/checkout@v4
-      - uses: azure/login@v2
+
+      - uses: actions/setup-node@v4
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      - name: Deploy infrastructure
-        uses: azure/arm-deploy@v2
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
         with:
-          scope: resourcegroup
-          resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
-          template: infra/main.bicep
-          parameters: >-
-            sqlAdminLogin=${{ secrets.SQL_ADMIN_LOGIN }}
-            sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
-            jwtSigningKey=${{ secrets.JWT_SIGNING_KEY }}
-            seedAdminEmail=${{ secrets.SEED_ADMIN_EMAIL }}
-            seedAdminPassword=${{ secrets.SEED_ADMIN_PASSWORD }}
-          failOnStdErr: false
-      - name: Build image in Azure Container Registry
+          dotnet-version: 8.0.x
+
+      - name: Build Angular application
+        run: |
+          npm ci --prefix frontend
+          npm run build --prefix frontend
+
+      - name: Publish App Service package
         shell: bash
         run: |
-          registry=$(az deployment group show --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name cloudtrack-dev --query properties.outputs.registryName.value -o tsv)
-          az acr build --registry "$registry" --image "cloudtrack:${GITHUB_SHA}" .
-          app=$(az deployment group show --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name cloudtrack-dev --query properties.outputs.containerAppName.value -o tsv)
-          server=$(az acr show --name "$registry" --query loginServer -o tsv)
-          az containerapp update --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "$app" --image "$server/cloudtrack:${GITHUB_SHA}"
+          dotnet publish backend/src/CloudTrack.Api/CloudTrack.Api.csproj \
+            --configuration Release \
+            --output "$RUNNER_TEMP/cloudtrack-publish" \
+            -p:IncludeFrontendDist=true
+          cd "$RUNNER_TEMP/cloudtrack-publish"
+          zip -q -r "$RUNNER_TEMP/cloudtrack.zip" .
+
+      - name: Sign in to Azure with GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy ZIP package to App Service
+        run: >-
+          az webapp deploy
+          --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          --name "${{ vars.AZURE_WEB_APP }}"
+          --src-path "$RUNNER_TEMP/cloudtrack.zip"
+          --type zip
+          --output none
+
+      - name: Verify public authentication routes
+        shell: bash
+        run: |
+          hostname=$(az webapp show \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ vars.AZURE_WEB_APP }}" \
+            --query defaultHostName -o tsv)
+          for path in health auth/login auth/register auth/forgot-password; do
+            curl --fail --silent --show-error \
+              --retry 12 --retry-delay 10 --retry-all-errors \
+              "https://$hostname/$path" > /dev/null
+          done
