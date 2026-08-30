@@ -33,8 +33,8 @@ jobs:
           resourceGroupName: ${{ vars.AZURE_RESOURCE_GROUP }}
           template: infra/main.bicep
           parameters: >-
-            postgresAdminLogin=${{ secrets.POSTGRES_ADMIN_LOGIN }}
-            postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+            sqlAdminLogin=${{ secrets.SQL_ADMIN_LOGIN }}
+            sqlAdminPassword=${{ secrets.SQL_ADMIN_PASSWORD }}
             jwtSigningKey=${{ secrets.JWT_SIGNING_KEY }}
             seedAdminEmail=${{ secrets.SEED_ADMIN_EMAIL }}
             seedAdminPassword=${{ secrets.SEED_ADMIN_PASSWORD }}
@@ -47,4 +47,3 @@ jobs:
           app=$(az deployment group show --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name cloudtrack-dev --query properties.outputs.containerAppName.value -o tsv)
           server=$(az acr show --name "$registry" --query loginServer -o tsv)
           az containerapp update --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "$app" --image "$server/cloudtrack:${GITHUB_SHA}"
-

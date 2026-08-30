@@ -12,7 +12,7 @@ CloudTrack follows ASP.NET Core's configuration precedence. Values in environmen
 ## Never commit
 
 - JWT signing keys, passwords, access/refresh/reset tokens.
-- PostgreSQL connection strings containing credentials.
+- SQL Server connection strings containing credentials.
 - Azure service-principal credentials, publish profiles, certificates, or downloaded portal configuration.
 - `appsettings.Production.json`, `appsettings.Azure.json`, `appsettings.*.local.json`, or `.env` files.
 - Local Bicep parameter files such as `infra/local.parameters.json` or `*.bicepparam` when they contain values.
@@ -41,7 +41,7 @@ Set these as Container App or App Service environment variables, not source file
 | --- | --- | --- |
 | `Jwt:SigningKey` | `Jwt__SigningKey` | Yes |
 | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Yes |
-| `Database:Provider` | `Database__Provider=PostgreSql` | No |
+| `Database:Provider` | `Database__Provider=SqlServer` | No |
 | `Cors:AllowedOrigins:0` | `Cors__AllowedOrigins__0` | No |
 | `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=false` | No |
 

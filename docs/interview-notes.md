@@ -2,13 +2,13 @@
 
 ## Two-minute project story
 
-CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core supports SQLite for easy onboarding and PostgreSQL for Azure. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The same pipeline tests the API, browser, secrets, and container before a gated Azure deployment.
+CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core supports lightweight SQLite tests and SQL Server for Azure. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The same pipeline tests the API, browser, secrets, and container before a gated Azure deployment.
 
 ## Decisions worth explaining
 
-### Why SQLite locally and PostgreSQL in Azure?
+### Why SQLite tests and SQL Server in Azure?
 
-SQLite removes a local infrastructure prerequisite and makes integration tests fast. PostgreSQL provides a realistic managed relational target. EF Core keeps the switch configuration-driven, although provider-specific behavior still needs integration coverage against PostgreSQL before calling the system production-ready.
+SQLite removes a local infrastructure prerequisite and makes integration tests fast. Azure SQL provides a realistic managed relational target with a free serverless allowance suited to a portfolio demo. EF Core keeps the switch configuration-driven, although provider-specific behavior still needs integration coverage against SQL Server before calling the system production-ready.
 
 ### Why not store JWTs in local storage?
 
@@ -29,7 +29,7 @@ Tracked appsettings contain only safe defaults. Local secrets live in .NET user-
 ## Trade-offs and next steps
 
 - Automatic schema initialization is convenient for a lab; reviewed EF migrations should own production changes.
-- Public PostgreSQL access reduces lab complexity; private networking is the production hardening path.
+- Azure-service SQL access reduces lab complexity; private networking is the production hardening path.
 - Reset tokens are exposed only in Development; production needs a transactional email provider.
 - The initial audit log supports investigation but should gain structured correlation IDs and retention policy.
 - The next performance step is a repeatable baseline covering API latency, database query count, bundle budgets, and cold-start behavior.

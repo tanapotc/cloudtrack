@@ -25,9 +25,9 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>(options =>
         {
-            if (provider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+            if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
             {
-                options.UseNpgsql(connectionString);
+                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure());
             }
             else
             {

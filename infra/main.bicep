@@ -4,10 +4,10 @@ targetScope = 'resourceGroup'
 param location string = resourceGroup().location
 
 @secure()
-param postgresAdminLogin string
+param sqlAdminLogin string
 
 @secure()
-param postgresAdminPassword string
+param sqlAdminPassword string
 
 @secure()
 @minLength(32)
@@ -23,7 +23,7 @@ param environmentName string = 'dev'
 
 var suffix = take(uniqueString(subscription().id, resourceGroup().id), 7)
 var registryName = 'crcloudtrack${environmentName}${suffix}'
-var postgresName = 'psql-cloudtrack-${environmentName}-${suffix}'
+var sqlServerName = 'sql-cloudtrack-${environmentName}-${suffix}'
 var appName = 'ca-cloudtrack-api-${environmentName}'
 var placeholderImage = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
@@ -61,39 +61,40 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   }
 }
 
-resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-12-01-preview' = {
-  name: postgresName
+resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
+  name: sqlServerName
+  location: location
+  properties: {
+    administratorLogin: sqlAdminLogin
+    administratorLoginPassword: sqlAdminPassword
+    minimalTlsVersion: '1.2'
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01' = {
+  parent: sqlServer
+  name: 'cloudtrack'
   location: location
   sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
+    name: 'GP_S_Gen5_2'
+    tier: 'GeneralPurpose'
+    family: 'Gen5'
+    capacity: 2
   }
   properties: {
-    version: '16'
-    administratorLogin: postgresAdminLogin
-    administratorLoginPassword: postgresAdminPassword
-    availabilityZone: '1'
-    storage: { storageSizeGB: 32 }
-    backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
-    }
-    highAvailability: { mode: 'Disabled' }
-    network: { publicNetworkAccess: 'Enabled' }
+    autoPauseDelay: 60
+    freeLimitExhaustionBehavior: 'AutoPause'
+    maxSizeBytes: 34359738368
+    minCapacity: json('0.5')
+    requestedBackupStorageRedundancy: 'Local'
+    useFreeLimit: true
+    zoneRedundant: false
   }
 }
 
-resource postgresDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-12-01-preview' = {
-  parent: postgres
-  name: 'cloudtrack'
-  properties: {
-    charset: 'UTF8'
-    collation: 'en_US.utf8'
-  }
-}
-
-resource allowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-12-01-preview' = {
-  parent: postgres
+resource allowAzure 'Microsoft.Sql/servers/firewallRules@2023-08-01' = {
+  parent: sqlServer
   name: 'AllowAzureServices'
   properties: {
     startIpAddress: '0.0.0.0'
@@ -123,7 +124,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       secrets: [
         { name: 'jwt-signing-key', value: jwtSigningKey }
-        { name: 'postgres-connection', value: 'Host=${postgres.properties.fullyQualifiedDomainName};Database=cloudtrack;Username=${postgresAdminLogin};Password=${postgresAdminPassword};SSL Mode=Require' }
+        { name: 'sql-connection', value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Initial Catalog=cloudtrack;Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;' }
         { name: 'seed-admin-email', value: seedAdminEmail }
         { name: 'seed-admin-password', value: seedAdminPassword }
       ]
@@ -136,8 +137,8 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           resources: { cpu: json('0.5'), memory: '1Gi' }
           env: [
             { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
-            { name: 'Database__Provider', value: 'PostgreSql' }
-            { name: 'ConnectionStrings__DefaultConnection', secretRef: 'postgres-connection' }
+            { name: 'Database__Provider', value: 'SqlServer' }
+            { name: 'ConnectionStrings__DefaultConnection', secretRef: 'sql-connection' }
             { name: 'Jwt__SigningKey', secretRef: 'jwt-signing-key' }
             { name: 'Auth__ExposeDevelopmentResetToken', value: 'false' }
             { name: 'Seed__AdminEmail', secretRef: 'seed-admin-email' }
@@ -152,6 +153,10 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
       scale: { minReplicas: 0, maxReplicas: 1 }
     }
   }
+  dependsOn: [
+    sqlDatabase
+    allowAzure
+  ]
 }
 
 resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -167,5 +172,4 @@ resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 output registryName string = registry.name
 output containerAppName string = app.name
 output applicationUrl string = 'https://${app.properties.configuration.ingress.fqdn}'
-output postgresServerName string = postgres.name
-
+output sqlServerName string = sqlServer.name

@@ -10,17 +10,17 @@ Before the first deployment, confirm all of the following:
 2. `learning_stack` is the intended resource group and its region supports every selected resource.
 3. The Bicep `what-if` result contains only the expected resources below.
 4. The estimated monthly spend is acceptable and a budget alert is configured.
-5. PostgreSQL public access is acceptable for this learning version.
+5. Azure SQL access from Azure services is acceptable for this learning version.
 
 Expected resources:
 
 - Azure Container Apps environment and one Container App, Consumption plan, min replicas `0`, max replicas `1`.
 - Azure Container Registry, Basic.
-- PostgreSQL Flexible Server, Burstable `Standard_B1ms`, 32 GiB storage, 7-day backup, no HA.
+- Azure SQL Database free offer, General Purpose serverless, 2 vCores, 32 GB, local backup redundancy.
 - Log Analytics workspace with 30-day retention.
 - A managed identity and only the `AcrPull` role assignment it needs.
 
-PostgreSQL and Registry have a recurring cost even when the Container App scales to zero. Prices vary by region and must be checked in the Azure pricing calculator immediately before deployment.
+The database is configured with `useFreeLimit=true` and `freeLimitExhaustionBehavior=AutoPause`, so it pauses until the next month instead of billing database overage. Container Registry still has a recurring cost, and logging or traffic can incur charges. Verify current prices immediately before deployment.
 
 ## Authenticate and inspect
 
@@ -67,7 +67,7 @@ Variables:
 Secrets:
 
 - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` for OIDC metadata.
-- `POSTGRES_ADMIN_LOGIN`, `POSTGRES_ADMIN_PASSWORD`.
+- `SQL_ADMIN_LOGIN`, `SQL_ADMIN_PASSWORD`.
 - `JWT_SIGNING_KEY` with at least 32 random characters.
 - `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
 
@@ -90,9 +90,9 @@ Verify `/health`, registration, login, a project create/read flow, and the admin
 - Create a monthly budget and at least 50%, 80%, and 100% alerts before leaving the environment unattended.
 - Keep Container Apps at min replicas `0` and max replicas `1` for the interview demo.
 - Review Log Analytics ingestion and retention after the first week.
-- Stop PostgreSQL when not demonstrating it; compute billing stops, but storage and backups continue, and Azure automatically restarts a stopped Flexible Server after its maximum stop period.
+- Keep the Azure SQL free-limit behavior set to `AutoPause`; an exhausted database remains unavailable until the monthly allowance resets instead of generating overage charges.
 - Delete individual CloudTrack resources only after checking the exact resource IDs. The shared `learning_stack` resource group must not be deleted as project cleanup.
 
 ## Version-two hardening
 
-The learning deployment allows Azure-service access to PostgreSQL. A stronger production design would use private networking, Key Vault, managed database identity where supported, separate migration execution, restore drills, alerts, and an explicit observability/SLO plan.
+The learning deployment allows Azure-service access to Azure SQL. A stronger production design would use private networking, Key Vault, managed database identity where supported, separate migration execution, restore drills, alerts, and an explicit observability/SLO plan.

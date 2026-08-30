@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Database__Provider: PostgreSql
-      ConnectionStrings__DefaultConnection: Host=database;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Database__Provider: SqlServer
+      ConnectionStrings__DefaultConnection: Server=database,1433;Initial Catalog=cloudtrack;User ID=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True
       Jwt__SigningKey: ${JWT__SIGNINGKEY}
       Seed__AdminEmail: ${SEED__ADMINEMAIL}
       Seed__AdminPassword: ${SEED__ADMINPASSWORD}
@@ -20,19 +20,17 @@ services:
         condition: service_healthy
 
   database:
-    image: postgres:16-alpine
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     volumes:
-      - cloudtrack-data:/var/lib/postgresql/data
+      - cloudtrack-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
 
 volumes:
   cloudtrack-data:
-

@@ -10,7 +10,7 @@ The solution separates Domain, Application, Infrastructure, and API projects. Th
 
 ## ADR-003: Database strategy
 
-SQLite keeps local onboarding fast where Docker is unavailable. EF Core selects PostgreSQL through configuration in Azure. This preserves a low-friction development path without changing the production relational model.
+SQLite keeps local tests fast where Docker is unavailable. EF Core selects SQL Server through configuration in Azure. This preserves a low-friction development path while the deployed environment uses the same engine family as a normal enterprise SQL Server workload.
 
 The first learning release initializes the schema automatically. A mature production release should replace this with reviewed EF migrations executed by a controlled deployment step.
 
@@ -33,7 +33,7 @@ The approved target is the existing learning resource group `learning_stack`. No
 | Container App | `ca-cloudtrack-api-dev` | Consumption, 0.5 vCPU, 1 GiB, min 0/max 1 |
 | Container Apps environment | `cae-cloudtrack-dev` | Consumption |
 | Container Registry | `crcloudtrackdev<suffix>` | Basic |
-| PostgreSQL | `psql-cloudtrack-dev-<suffix>` | Flexible Server B1ms, 32 GiB, no HA |
+| Azure SQL | `sql-cloudtrack-dev-<suffix>/cloudtrack` | Free offer, General Purpose serverless, 32 GB, auto-pause on free-limit exhaustion |
 | Logs | `log-cloudtrack-dev` | 30-day retention |
 
 The names identify the resource type, system, and environment. Globally unique resources receive a deterministic suffix during deployment.

@@ -13,7 +13,7 @@ CloudTrack is a production-minded project workspace built as a full-stack and Az
 - `Admin`, `Manager`, and `Member` roles with protected user and role management.
 - Project and task management with audit history, search, filters, paging, and optimistic concurrency.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
-- Layered ASP.NET Core backend with SQLite locally and PostgreSQL in Azure.
+- Layered ASP.NET Core backend with SQLite for lightweight local tests and SQL Server in Azure.
 - Docker, GitHub Actions, secret scanning, health probes, and Bicep infrastructure.
 
 ## Architecture
@@ -26,7 +26,7 @@ flowchart LR
   App --> Domain[Domain entities and rules]
   API --> Infra[EF Core infrastructure]
   Infra --> Local[(SQLite local)]
-  Infra --> Cloud[(Azure PostgreSQL)]
+  Infra --> Cloud[(Azure SQL Database)]
   Actions[GitHub Actions] --> Registry[Azure Container Registry]
   Registry --> Container[Azure Container Apps]
   Container --> Cloud
@@ -40,11 +40,11 @@ The production container serves the Angular bundle and API from one origin. This
 | --- | --- |
 | Web | Angular 22, standalone components, Angular Material, signals |
 | API | ASP.NET Core 8, controllers, Problem Details, rate limiting |
-| Data | EF Core 8, SQLite, PostgreSQL 16 |
+| Data | EF Core 8, SQLite, SQL Server |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
 | Quality | xUnit, ASP.NET integration tests, Vitest, Playwright |
 | Delivery | Docker, GitHub Actions, Gitleaks, Azure Bicep |
-| Azure | Container Apps, Container Registry, PostgreSQL Flexible Server, Log Analytics |
+| Azure | Container Apps, Container Registry, Azure SQL Database Free/Serverless, Log Analytics |
 
 ## Run locally
 
@@ -135,7 +135,7 @@ docs/                             Architecture, operations, and interview notes
 
 - Replace the development reset-token display with a transactional email provider.
 - Move secrets to Key Vault if the operational trade-off is justified.
-- Add private networking for PostgreSQL and restore testing for backups.
+- Add private networking for Azure SQL and restore testing for backups.
 - Add OpenTelemetry traces, explicit SLOs, and performance baselines.
 
 The Git history is intentionally split into small conventional commits so reviewers can follow the project from foundation to delivery.

@@ -8,5 +8,4 @@ The production image builds Angular and publishes ASP.NET Core, then copies the 
 2. Run `docker compose up --build`.
 3. Open `http://localhost:8080`; health is available at `http://localhost:8080/health`.
 
-The compose stack uses PostgreSQL 16 and a named volume. The container runs as a non-root user. Docker is not installed in the initial development environment, so CI is the authoritative image-build verification until Docker Desktop is available locally.
-
+The compose stack uses SQL Server 2022 and a named volume. The application container runs as a non-root user. Docker is not installed in the initial development environment, so Azure Container Registry build is the authoritative image-build verification until Docker Desktop is available locally.
