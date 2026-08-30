@@ -1,7 +1,15 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { DashboardSummary, ManagedUserSummary, PagedResult, ProjectDetails, ProjectSummary, RoleSummary, WorkItemSummary } from './models';
+import {
+  DashboardSummary,
+  ManagedUserSummary,
+  PagedResult,
+  ProjectDetails,
+  ProjectSummary,
+  RoleSummary,
+  WorkItemSummary,
+} from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -26,18 +34,34 @@ export class ApiService {
     return this.http.post<ProjectDetails>(`${environment.apiUrl}/projects`, { name, description });
   }
 
-  createTask(projectId: string, title: string, description: string, priority: number, dueDate: string | null) {
-    return this.http.post<WorkItemSummary>(`${environment.apiUrl}/projects/${projectId}/tasks`, { title, description, priority, dueDate });
+  createTask(
+    projectId: string,
+    title: string,
+    description: string,
+    priority: number,
+    dueDate: string | null,
+  ) {
+    return this.http.post<WorkItemSummary>(`${environment.apiUrl}/projects/${projectId}/tasks`, {
+      title,
+      description,
+      priority,
+      dueDate,
+    });
   }
 
   updateTask(projectId: string, task: WorkItemSummary, status: number) {
-    return this.http.put<WorkItemSummary>(`${environment.apiUrl}/projects/${projectId}/tasks/${task.id}`, { ...task, status });
+    return this.http.put<WorkItemSummary>(
+      `${environment.apiUrl}/projects/${projectId}/tasks/${task.id}`,
+      { ...task, status },
+    );
   }
 
   users(search = '') {
     let params = new HttpParams().set('page', 1).set('pageSize', 30);
     if (search) params = params.set('search', search);
-    return this.http.get<PagedResult<ManagedUserSummary>>(`${environment.apiUrl}/admin/users`, { params });
+    return this.http.get<PagedResult<ManagedUserSummary>>(`${environment.apiUrl}/admin/users`, {
+      params,
+    });
   }
 
   roles() {
@@ -45,6 +69,8 @@ export class ApiService {
   }
 
   updateUserStatus(userId: string, isActive: boolean) {
-    return this.http.put<ManagedUserSummary>(`${environment.apiUrl}/admin/users/${userId}/status`, { isActive });
+    return this.http.put<ManagedUserSummary>(`${environment.apiUrl}/admin/users/${userId}/status`, {
+      isActive,
+    });
   }
 }

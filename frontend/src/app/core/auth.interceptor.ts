@@ -6,7 +6,9 @@ import { AuthService } from './auth.service';
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AuthService);
   const token = auth.accessToken;
-  const authenticatedRequest = token ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }) : request;
+  const authenticatedRequest = token
+    ? request.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : request;
 
   return next(authenticatedRequest).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -17,4 +19,3 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     }),
   );
 };
-
