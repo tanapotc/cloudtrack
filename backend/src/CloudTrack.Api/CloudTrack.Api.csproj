@@ -17,4 +17,10 @@
     <ProjectReference Include="..\CloudTrack.Infrastructure\CloudTrack.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(IncludeFrontendDist)' == 'true'">
+    <Content Include="$(MSBuildProjectDirectory)\..\..\..\frontend\dist\cloudtrack-web\browser\**\*"
+             Link="wwwroot\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
