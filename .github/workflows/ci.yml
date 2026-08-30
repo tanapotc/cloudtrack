@@ -46,6 +46,7 @@ jobs:
       - run: npm ci
       - run: npm test -- --watch=false
       - run: npm run build
+      - run: npx prettier --check "src/**/*.{ts,html,scss}" "e2e/**/*.ts" angular.json
       - run: npm audit --omit=dev
       - run: npx playwright install --with-deps chromium
       - name: Start ephemeral SQL Server
