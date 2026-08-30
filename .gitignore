@@ -43,3 +43,6 @@ Thumbs.db
 TestResults/
 playwright-report/
 test-results/
+
+# Generated infrastructure output
+infra/*.json
