@@ -1,3 +1,4 @@
+using CloudTrack.Application.Common;
 using CloudTrack.Domain.Auditing;
 using CloudTrack.Domain.Common;
 using CloudTrack.Domain.Identity;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CloudTrack.Infrastructure.Persistence;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser currentUser) : DbContext(options)
 {
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<Role> Roles => Set<Role>();
@@ -24,6 +25,22 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Schemas group tables by role instead of leaving everything in the default "dbo":
+        //   mas = master / reference data   tra = transactional data
+        //   sec = security artifacts        aud = audit trail
+        modelBuilder.Entity<AppUser>().ToTable("Users", "mas");
+        modelBuilder.Entity<Role>().ToTable("Roles", "mas");
+        modelBuilder.Entity<PermissionDefinition>().ToTable("Permissions", "mas");
+        modelBuilder.Entity<UserRole>().ToTable("UserRoles", "mas");
+        modelBuilder.Entity<RolePermissionGrant>().ToTable("RolePermissions", "mas");
+        modelBuilder.Entity<Project>().ToTable("Projects", "tra");
+        modelBuilder.Entity<ProjectMember>().ToTable("ProjectMembers", "tra");
+        modelBuilder.Entity<WorkItem>().ToTable("WorkItems", "tra");
+        modelBuilder.Entity<WorkItemComment>().ToTable("WorkItemComments", "tra");
+        modelBuilder.Entity<RefreshToken>().ToTable("RefreshTokens", "sec");
+        modelBuilder.Entity<PasswordResetToken>().ToTable("PasswordResetTokens", "sec");
+        modelBuilder.Entity<AuditLog>().ToTable("AuditLogs", "aud");
+
         modelBuilder.Entity<AppUser>(entity =>
         {
             entity.HasIndex(x => x.NormalizedEmail).IsUnique();
@@ -89,20 +106,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
+        StampAudit();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override int SaveChanges()
+    {
+        StampAudit();
+        return base.SaveChanges();
+    }
+
+    private void StampAudit()
+    {
         var now = DateTimeOffset.UtcNow;
-        foreach (var entry in ChangeTracker.Entries<Entity>())
+        var actor = currentUser.UserId;
+        foreach (var entry in ChangeTracker.Entries<IAuditable>())
         {
             if (entry.State == EntityState.Added)
             {
                 entry.Entity.CreatedAt = now;
+                entry.Entity.CreatedBy ??= actor;
             }
 
             if (entry.State is EntityState.Added or EntityState.Modified)
             {
                 entry.Entity.UpdatedAt = now;
+                entry.Entity.UpdatedBy = actor;
             }
         }
-
-        return base.SaveChangesAsync(cancellationToken);
     }
 }

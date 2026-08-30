@@ -73,7 +73,7 @@ public sealed class AuthService(
             .Include(x => x.User).ThenInclude(x => x.UserRoles).ThenInclude(x => x.Role).ThenInclude(x => x.RolePermissions).ThenInclude(x => x.Permission)
             .SingleOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
 
-        if (stored is null || !stored.IsActive || !stored.User.IsActive)
+        if (stored is null || !stored.IsUsable || !stored.User.IsActive)
         {
             throw new AppException(401, "Invalid refresh token", "Sign in again to continue.");
         }

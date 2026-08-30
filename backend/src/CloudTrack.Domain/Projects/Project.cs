@@ -18,7 +18,7 @@ public sealed class Project : Entity
     public ICollection<WorkItem> WorkItems { get; set; } = [];
 }
 
-public sealed class ProjectMember
+public sealed class ProjectMember : AuditableLink
 {
     public Guid ProjectId { get; set; }
     public Project Project { get; set; } = null!;

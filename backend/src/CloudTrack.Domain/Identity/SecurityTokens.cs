@@ -10,7 +10,10 @@ public sealed class RefreshToken : Entity
     public DateTimeOffset ExpiresAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
     public Guid? ReplacedByTokenId { get; set; }
-    public bool IsActive => RevokedAt is null && ExpiresAt > DateTimeOffset.UtcNow;
+
+    /// <summary>True while the token can still be exchanged: not revoked and not past expiry.</summary>
+    /// <remarks>Distinct from the inherited <see cref="Entity.IsActive"/> soft-state flag.</remarks>
+    public bool IsUsable => RevokedAt is null && ExpiresAt > DateTimeOffset.UtcNow;
 }
 
 public sealed class PasswordResetToken : Entity

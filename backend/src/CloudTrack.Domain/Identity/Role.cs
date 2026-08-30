@@ -10,7 +10,7 @@ public sealed class Role : Entity
     public ICollection<RolePermissionGrant> RolePermissions { get; set; } = [];
 }
 
-public sealed class UserRole
+public sealed class UserRole : AuditableLink
 {
     public Guid UserId { get; set; }
     public AppUser User { get; set; } = null!;
@@ -25,7 +25,7 @@ public sealed class PermissionDefinition : Entity
     public ICollection<RolePermissionGrant> RolePermissions { get; set; } = [];
 }
 
-public sealed class RolePermissionGrant
+public sealed class RolePermissionGrant : AuditableLink
 {
     public Guid RoleId { get; set; }
     public Role Role { get; set; } = null!;

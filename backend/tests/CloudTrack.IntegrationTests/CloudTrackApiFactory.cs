@@ -1,3 +1,4 @@
+using CloudTrack.Application.Common;
 using CloudTrack.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -58,7 +59,7 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlServer(_connectionString)
                 .Options;
-            using var dbContext = new AppDbContext(options);
+            using var dbContext = new AppDbContext(options, NoCurrentUser.Instance);
             dbContext.Database.EnsureDeleted();
         }
     }

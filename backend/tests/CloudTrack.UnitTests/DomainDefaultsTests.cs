@@ -25,6 +25,6 @@ public sealed class DomainDefaultsTests
             ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(-1),
         };
 
-        Assert.False(token.IsActive);
+        Assert.False(token.IsUsable);
     }
 }
