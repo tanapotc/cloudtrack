@@ -35,13 +35,12 @@ export class AuthService {
   }
 
   register(email: string, password: string, displayName: string): Observable<AuthResponse> {
-    return this.http
-      .post<AuthResponse>(
-        `${environment.apiUrl}/auth/register`,
-        { email, password, displayName },
-        { withCredentials: true },
-      )
-      .pipe(tap((response) => this.storeSession(response)));
+    // Registration only persists the account; the user then signs in from the login page.
+    return this.http.post<AuthResponse>(
+      `${environment.apiUrl}/auth/register`,
+      { email, password, displayName },
+      { withCredentials: true },
+    );
   }
 
   forgotPassword(email: string): Observable<{ message: string; developmentResetToken?: string }> {

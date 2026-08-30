@@ -37,7 +37,7 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }] = Array.Empty<string>(),
     });
 });
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
@@ -124,9 +124,27 @@ app.MapFallbackToFile("index.html");
 
 using (var scope = app.Services.CreateScope())
 {
-    await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+    var services = scope.ServiceProvider;
+    try
+    {
+        await services.GetRequiredService<DatabaseInitializer>().InitializeAsync();
+    }
+    catch (Exception ex)
+    {
+        // A database that is unreachable at start-up must not crash-loop the whole site.
+        // The app still serves the SPA and static content, and /health reports the database
+        // as unhealthy; a restart re-runs the migration and seed.
+        LogStartupDatabaseFailure(services.GetRequiredService<ILogger<Program>>(), ex);
+    }
 }
 
 app.Run();
 
-public partial class Program;
+public partial class Program
+{
+    private static readonly Action<ILogger, Exception?> LogStartupDatabaseFailure =
+        LoggerMessage.Define(
+            LogLevel.Critical,
+            new EventId(1002, "StartupDatabaseInitFailed"),
+            "Database initialization failed at start-up; continuing without it.");
+}

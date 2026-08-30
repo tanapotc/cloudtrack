@@ -36,7 +36,11 @@ export class AuthPage {
   readonly mode = signal<AuthMode>((this.route.snapshot.data['mode'] as AuthMode) ?? 'login');
   readonly loading = signal(false);
   readonly error = signal('');
-  readonly success = signal('');
+  readonly success = signal(
+    this.route.snapshot.queryParamMap.get('registered') === '1'
+      ? 'Account created. Please sign in.'
+      : '',
+  );
   readonly developmentToken = signal('');
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
@@ -127,8 +131,9 @@ export class AuthPage {
       next: (
         response: AuthResponse | { message: string; developmentResetToken?: string } | void,
       ) => {
-        if (this.mode() === 'login' || this.mode() === 'register')
-          void this.router.navigateByUrl('/dashboard');
+        if (this.mode() === 'login') void this.router.navigateByUrl('/dashboard');
+        else if (this.mode() === 'register')
+          void this.router.navigate(['/auth/login'], { queryParams: { registered: '1' } });
         else if (this.mode() === 'forgot') {
           const result = response as { message: string; developmentResetToken?: string };
           this.success.set(result.message);
