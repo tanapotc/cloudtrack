@@ -7,7 +7,14 @@ import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatButtonModule, MatIconModule, MatMenuModule],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+  ],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })
@@ -26,6 +33,14 @@ export class AppShell {
   ];
 
   initials(): string {
-    return this.auth.currentUser()?.displayName.split(' ').slice(0, 2).map((part) => part[0]).join('').toUpperCase() ?? 'CT';
+    return (
+      this.auth
+        .currentUser()
+        ?.displayName.split(' ')
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase() ?? 'CT'
+    );
   }
 }
