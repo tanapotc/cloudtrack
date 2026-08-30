@@ -12,6 +12,8 @@ Live authentication routes:
 - [Register](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/register)
 - [Forgot password](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/forgot-password)
 
+> Password recovery currently runs in clearly labelled portfolio demo mode. The API creates a 30-minute, single-use reset token and the UI exposes only a continue link because no email account or API key is stored in the demo. Responses include a non-persisted decoy token for unknown addresses so the response shape does not reveal whether an account exists. Replace this fallback with transactional email before using CloudTrack for real user data.
+
 Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the same Linux App Service as the API. No Static Web App, Docker runtime, or container registry is required for the Azure deployment.
 
 ![CloudTrack login on desktop](docs/screenshots/login-desktop.png)
@@ -153,6 +155,7 @@ CI repeats these checks and scans the full Git history for secrets. Azure delive
 - Local secrets belong in .NET user-secrets or an ignored `.env` file.
 - Azure secrets are protected App Service settings; they are never compiled into Angular or stored in GitHub.
 - Forgot-password responses do not reveal whether an email exists.
+- Demo reset links are single-use and expire after 30 minutes; production email delivery should set `Auth__ExposeDevelopmentResetToken=false`.
 - Changing a password revokes all refresh tokens.
 - The auth endpoints are rate-limited; API errors use consistent Problem Details.
 - CI runs Gitleaks before delivery.
@@ -185,7 +188,7 @@ docs/                             Architecture, operations, and interview notes
 
 ## Planned hardening
 
-- Replace the development reset-token display with a transactional email provider.
+- Replace the portfolio reset-link fallback with a transactional email provider such as [Resend Free](https://resend.com/pricing), then disable token exposure.
 - Move secrets to Key Vault if the operational trade-off is justified.
 - Add private networking for Azure SQL and restore testing for backups.
 - Add OpenTelemetry traces, explicit SLOs, and performance baselines.

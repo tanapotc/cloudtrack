@@ -43,6 +43,12 @@ Set these as App Service environment variables, not source files:
 | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Yes |
 | `Database:Provider` | `Database__Provider=SqlServer` | No |
 | `Cors:AllowedOrigins:0` | `Cors__AllowedOrigins__0` | No |
-| `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=false` | No |
+| `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=true` for the public portfolio demo | No |
 
 For a low-cost lab, sensitive values can start as secret application settings. Key Vault is a version-2 hardening step when its operational cost and complexity are justified.
+
+## Password-reset delivery modes
+
+The public portfolio environment temporarily sets `Auth__ExposeDevelopmentResetToken=true`. The API returns a short-lived, single-use token and Angular presents it as a continue link without printing the token. Unknown email addresses receive an unpersisted decoy so clients cannot infer account existence from the response shape.
+
+This mode is for demonstration data only. Before handling real accounts, connect a transactional email provider, set `Auth__ExposeDevelopmentResetToken=false`, and keep the provider API key in protected App Service settings. Resend currently offers a free transactional allowance suitable for a low-traffic portfolio; it still requires an account, API key, and verified sending domain.

@@ -14,6 +14,10 @@ SQLite removes a local infrastructure prerequisite and makes integration tests f
 
 The access token is held in memory and kept short lived. The refresh token is an HttpOnly cookie and only its hash is persisted. This reduces exposure to browser script access while preserving silent session recovery. Rotation and revocation provide controls that a single long-lived bearer token would not.
 
+### Why is password recovery a demo link instead of email?
+
+The deployed portfolio does not store a personal mailbox credential or third-party API key. Forgot Password therefore creates the same 30-minute, single-use, hashed-at-rest token that an email provider would deliver, but presents a clearly labelled continue link in the browser. A missing account receives an unpersisted decoy token, preserving an indistinguishable response shape. This is convenient for an interviewer to test end to end, but it is deliberately not presented as production delivery: the next step is a free transactional provider such as Resend and disabling `Auth__ExposeDevelopmentResetToken`.
+
 ### Why one App Service?
 
 Serving Angular and the API from one App Service origin reduces CORS and deployment complexity. Free F1 avoids a container registry and is appropriate for an interview demo, but has no SLA, daily quotas, and possible cold starts. UI and API still scale together; separate services would be appropriate when their release cadence or traffic profiles diverge.
@@ -30,7 +34,7 @@ Tracked appsettings contain only safe defaults. Local secrets live in .NET user-
 
 - Automatic schema initialization is convenient for a lab; reviewed EF migrations should own production changes.
 - Azure-service SQL access reduces lab complexity; private networking is the production hardening path.
-- Reset tokens are exposed only in Development; production needs a transactional email provider.
+- The portfolio demo exposes a one-time reset link; real-user production must use transactional email and disable token exposure.
 - The initial audit log supports investigation but should gain structured correlation IDs and retention policy.
 - The next performance step is a repeatable baseline covering API latency, database query count, bundle budgets, and cold-start behavior.
 
