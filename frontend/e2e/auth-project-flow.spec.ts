@@ -12,7 +12,14 @@ test('a new user can register and create a project', async ({ page }) => {
   await page.getByRole('button', { name: 'Create account' }).click();
 
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Portfolio/ })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: /Good (morning|afternoon|evening), Portfolio/ }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(
+    page.getByRole('heading', { name: /Good (morning|afternoon|evening), Portfolio/ }),
+  ).toBeVisible();
   if (test.info().project.name.startsWith('mobile')) {
     await page.getByRole('button', { name: 'Open navigation' }).click();
   }
