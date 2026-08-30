@@ -73,8 +73,4 @@ jobs:
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
             --name "${{ vars.AZURE_WEB_APP }}" \
             --query defaultHostName -o tsv)
-          for path in health auth/login auth/register auth/forgot-password; do
-            curl --fail --silent --show-error \
-              --retry 12 --retry-delay 10 --retry-all-errors \
-              "https://$hostname/$path" > /dev/null
-          done
+          bash .github/scripts/smoke-azure.sh "https://$hostname"
