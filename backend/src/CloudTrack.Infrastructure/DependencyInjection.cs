@@ -4,8 +4,8 @@ using CloudTrack.Application.Projects;
 using CloudTrack.Application.Users;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Infrastructure.Auth;
-using CloudTrack.Infrastructure.Persistence;
 using CloudTrack.Infrastructure.Dashboard;
+using CloudTrack.Infrastructure.Persistence;
 using CloudTrack.Infrastructure.Projects;
 using CloudTrack.Infrastructure.Users;
 using Microsoft.AspNetCore.Identity;
@@ -19,21 +19,12 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var provider = configuration["Database:Provider"] ?? "Sqlite";
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
 
-        services.AddDbContext<AppDbContext>(options =>
-        {
-            if (provider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
-            {
-                options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure());
-            }
-            else
-            {
-                options.UseSqlite(connectionString);
-            }
-        });
+        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
+            connectionString,
+            sql => sql.EnableRetryOnFailure()));
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

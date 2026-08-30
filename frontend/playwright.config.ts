@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const e2eSqlConnection =
+  process.env['CLOUDTRACK_E2E_SQLSERVER'] ??
+  'Server=(localdb)\\MSSQLLocalDB;Initial Catalog=CloudTrack.E2E;Integrated Security=True;Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=True';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -17,7 +21,8 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'dotnet run --project src/CloudTrack.Api --configuration Release --urls http://localhost:5080',
+      command:
+        'dotnet run --project src/CloudTrack.Api --configuration Release --urls http://localhost:5080',
       cwd: '../backend',
       url: 'http://localhost:5080/health',
       reuseExistingServer: !process.env['CI'],
@@ -26,6 +31,7 @@ export default defineConfig({
         Jwt__SigningKey: 'playwright-only-signing-key-with-32-characters',
         ASPNETCORE_ENVIRONMENT: 'Development',
         RateLimiting__AuthPermitLimit: '100',
+        ConnectionStrings__DefaultConnection: e2eSqlConnection,
       },
     },
     {

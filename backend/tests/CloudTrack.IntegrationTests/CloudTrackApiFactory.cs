@@ -1,7 +1,7 @@
 using CloudTrack.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,11 +11,22 @@ namespace CloudTrack.IntegrationTests;
 
 public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
 {
-    private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private readonly string _databaseName = $"CloudTrackTests_{Guid.NewGuid():N}";
+    private readonly string _connectionString;
+
+    public CloudTrackApiFactory()
+    {
+        var serverConnection = Environment.GetEnvironmentVariable("CLOUDTRACK_TEST_SQLSERVER")
+            ?? "Server=(localdb)\\MSSQLLocalDB;Integrated Security=True;Encrypt=False;TrustServerCertificate=True";
+        _connectionString = new SqlConnectionStringBuilder(serverConnection)
+        {
+            InitialCatalog = _databaseName,
+            MultipleActiveResultSets = true,
+        }.ConnectionString;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        _connection.Open();
         builder.UseEnvironment("Testing");
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
@@ -28,11 +39,14 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
                 ["Cors:AllowedOrigins:0"] = "http://localhost",
                 ["Seed:AdminEmail"] = "admin@example.test",
                 ["Seed:AdminPassword"] = "IntegrationAdmin!234",
+                ["ConnectionStrings:DefaultConnection"] = _connectionString,
             }));
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
+                _connectionString,
+                sql => sql.EnableRetryOnFailure()));
         });
     }
 
@@ -41,7 +55,11 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
         base.Dispose(disposing);
         if (disposing)
         {
-            _connection.Dispose();
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlServer(_connectionString)
+                .Options;
+            using var dbContext = new AppDbContext(options);
+            dbContext.Database.EnsureDeleted();
         }
     }
 }

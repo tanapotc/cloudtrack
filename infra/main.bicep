@@ -104,7 +104,6 @@ resource webApp 'Microsoft.Web/sites@2023-12-01' = {
       appSettings: [
         { name: 'ASPNETCORE_ENVIRONMENT', value: 'Production' }
         { name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED', value: 'true' }
-        { name: 'Database__Provider', value: 'SqlServer' }
         { name: 'ConnectionStrings__DefaultConnection', value: sqlConnectionString }
         { name: 'Jwt__SigningKey', value: jwtSigningKey }
         { name: 'Auth__ExposeDevelopmentResetToken', value: 'true' }

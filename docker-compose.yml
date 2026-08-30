@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Database__Provider: SqlServer
       ConnectionStrings__DefaultConnection: Server=database,1433;Initial Catalog=cloudtrack;User ID=sa;Password=${MSSQL_SA_PASSWORD};Encrypt=False;TrustServerCertificate=True
       Jwt__SigningKey: ${JWT__SIGNINGKEY}
       Seed__AdminEmail: ${SEED__ADMINEMAIL}
