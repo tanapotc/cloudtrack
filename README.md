@@ -6,6 +6,14 @@ CloudTrack is a production-minded project workspace built as a full-stack and Az
 
 [Open the live CloudTrack demo](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net)
 
+Live authentication routes:
+
+- [Login](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/login)
+- [Register](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/register)
+- [Forgot password](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/forgot-password)
+
+Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the same Linux App Service as the API. No Static Web App, Docker runtime, or container registry is required for the Azure deployment.
+
 ![CloudTrack login on desktop](docs/screenshots/login-desktop.png)
 
 ## What it demonstrates
