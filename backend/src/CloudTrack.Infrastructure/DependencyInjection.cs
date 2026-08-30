@@ -24,7 +24,11 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>(options => options.UseSqlServer(
             connectionString,
-            sql => sql.EnableRetryOnFailure()));
+            sql =>
+            {
+                sql.EnableRetryOnFailure();
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "dbo");
+            }));
 
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))

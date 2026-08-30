@@ -10,7 +10,7 @@ public sealed class DatabaseInitializer(AppDbContext dbContext, IPasswordHasher<
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        await dbContext.Database.MigrateAsync(cancellationToken);
         await SeedRolesAndPermissionsAsync(cancellationToken);
 
         var adminEmail = configuration["Seed:AdminEmail"]?.Trim();

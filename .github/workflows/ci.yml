@@ -23,6 +23,7 @@ jobs:
           dotnet-version: 8.0.x
       - name: Start ephemeral SQL Server
         run: bash .github/scripts/start-sql-server.sh
+      - run: dotnet tool restore
       - run: dotnet restore backend/CloudTrack.sln
       - run: dotnet build backend/CloudTrack.sln --configuration Release --no-restore
         env:
@@ -30,6 +31,11 @@ jobs:
       - run: dotnet test backend/CloudTrack.sln --configuration Release --no-build --collect:"XPlat Code Coverage"
         env:
           Jwt__SigningKey: ci-test-only-signing-key-with-32-characters
+      - name: Verify migrations match the model
+        run: >-
+          dotnet ef migrations has-pending-model-changes
+          --project backend/src/CloudTrack.Infrastructure
+          --startup-project backend/src/CloudTrack.Infrastructure
 
   frontend:
     runs-on: ubuntu-latest

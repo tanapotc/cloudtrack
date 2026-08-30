@@ -13,6 +13,11 @@ indent_size = 4
 dotnet_sort_system_directives_first = true
 csharp_new_line_before_open_brace = all
 
+# EF Core scaffolds migrations and the model snapshot; they are rewritten by the tooling,
+# so analyzer style rules must not fail the build (TreatWarningsAsErrors is on).
+[**/Persistence/Migrations/*.cs]
+generated_code = true
+
 [*.md]
 trim_trailing_whitespace = false
 
