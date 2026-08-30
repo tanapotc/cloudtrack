@@ -10,7 +10,7 @@ The solution separates Domain, Application, Infrastructure, and API projects. Th
 
 ## ADR-003: Database strategy
 
-SQLite keeps local tests fast where Docker is unavailable. EF Core selects SQL Server through configuration in Azure. This preserves a low-friction development path while the deployed environment uses the same engine family as a normal enterprise SQL Server workload.
+CloudTrack runs on SQL Server in every environment: LocalDB for development, an ephemeral SQL Server 2022 container for CI, and Azure SQL serverless in production. An earlier iteration used SQLite for local and test runs, but keeping two providers meant integration tests never exercised the engine that production uses, hiding provider-specific behavior around transactions, retries, and concurrency. Integration and E2E suites now create a disposable database per run and drop it on teardown.
 
 The first learning release initializes the schema automatically. A mature production release should replace this with reviewed EF migrations executed by a controlled deployment step.
 

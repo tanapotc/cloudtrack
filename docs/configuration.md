@@ -4,7 +4,7 @@ CloudTrack follows ASP.NET Core's configuration precedence. Values in environmen
 
 ## Safe to commit
 
-- `appsettings.json`: non-secret defaults, local SQLite path, empty JWT signing key.
+- `appsettings.json`: non-secret defaults, a LocalDB connection string with no credential, empty JWT signing key.
 - `appsettings.Development.json`: logging and development-only feature flags; never credentials.
 - `.env.example`: names and visibly fake placeholders only.
 - Angular environment files: public build-time values such as the relative API URL. Anything compiled into Angular is public.
@@ -31,7 +31,7 @@ dotnet user-secrets set "Jwt:SigningKey" "<generate-at-least-32-random-character
 dotnet run --urls http://localhost:5080
 ```
 
-The default local connection string is `Data Source=cloudtrack.db`. It contains no credential and the generated database file is ignored.
+The default local connection string targets SQL Server LocalDB (`Server=(localdb)\MSSQLLocalDB;Initial Catalog=CloudTrack.Dev;Integrated Security=True`). It uses Windows integrated security, so it holds no credential. Point `ConnectionStrings__DefaultConnection` at a container or another instance to override it. EF Core creates the schema and seeds baseline data on first run.
 
 ## Azure mapping
 
@@ -41,7 +41,6 @@ Set these as App Service environment variables, not source files:
 | --- | --- | --- |
 | `Jwt:SigningKey` | `Jwt__SigningKey` | Yes |
 | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Yes |
-| `Database:Provider` | `Database__Provider=SqlServer` | No |
 | `Cors:AllowedOrigins:0` | `Cors__AllowedOrigins__0` | No |
 | `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=true` for the public portfolio demo | No |
 

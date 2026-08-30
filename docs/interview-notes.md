@@ -2,13 +2,13 @@
 
 ## Two-minute project story
 
-CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core supports lightweight SQLite tests and SQL Server for Azure. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The pipeline tests the API, browser, and secrets before a gated ZIP deployment to Azure App Service using OIDC.
+CloudTrack is a project-management workspace I built to demonstrate an end-to-end delivery path rather than only a login screen. Angular handles a responsive, lazy-loaded UI; ASP.NET Core exposes a layered API; EF Core runs on SQL Server in every environment, from LocalDB to Azure SQL. Authentication uses short-lived JWTs and rotated refresh tokens, and administration uses role and resource boundaries. The pipeline tests the API, browser, and secrets before a gated ZIP deployment to Azure App Service using OIDC.
 
 ## Decisions worth explaining
 
-### Why SQLite tests and SQL Server in Azure?
+### Why standardize on SQL Server everywhere?
 
-SQLite removes a local infrastructure prerequisite and makes integration tests fast. Azure SQL provides a realistic managed relational target with a free serverless allowance suited to a portfolio demo. EF Core keeps the switch configuration-driven, although provider-specific behavior still needs integration coverage against SQL Server before calling the system production-ready.
+An earlier version used SQLite for local and test runs to avoid a database prerequisite. The problem: integration tests passed against an engine production never uses, so provider-specific behavior around execution strategies, retries, and transactions went untested. Now every environment uses SQL Server — LocalDB for development, an ephemeral SQL Server 2022 container in CI, and Azure SQL serverless in production. Tests create and drop a database per run, so they stay isolated without a second provider.
 
 ### Why not store JWTs in local storage?
 
