@@ -25,6 +25,7 @@ export default defineConfig({
       env: {
         Jwt__SigningKey: 'playwright-only-signing-key-with-32-characters',
         ASPNETCORE_ENVIRONMENT: 'Development',
+        RateLimiting__AuthPermitLimit: '100',
       },
     },
     {

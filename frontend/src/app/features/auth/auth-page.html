@@ -132,9 +132,10 @@
 
   @if (developmentToken()) {
     <div class="dev-token">
-      <strong>Local demo token</strong><code>{{ developmentToken() }}</code
-      ><a [routerLink]="['/auth/reset-password']" [queryParams]="{ token: developmentToken() }"
-        >Continue to reset</a
+      <strong>Portfolio demo mode</strong>
+      <span>No email provider is connected yet. Use this one-time link to continue securely.</span>
+      <a [routerLink]="['/auth/reset-password']" [queryParams]="{ token: developmentToken() }"
+        >Continue to reset password</a
       >
     </div>
   }

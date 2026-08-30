@@ -64,3 +64,33 @@ test('auth navigation and mobile layout stay usable', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible();
   await expect(page.locator('.auth-card')).toBeInViewport();
 });
+
+test('portfolio demo reset link completes password recovery', async ({ page }) => {
+  const email = `reset-${Date.now()}-${test.info().project.name}@example.test`;
+  const originalPassword = 'Portfolio!234';
+  const updatedPassword = 'Updated!567';
+
+  await page.goto('/auth/register');
+  await page.getByLabel('Full name').fill('Reset Demo');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(originalPassword);
+  await page.getByRole('textbox', { name: 'Confirm password' }).fill(originalPassword);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.context().clearCookies();
+  await page.goto('/auth/forgot-password');
+  await page.getByLabel('Email').fill(email);
+  await page.getByRole('button', { name: 'Send reset instructions' }).click();
+  await expect(page.getByText('Portfolio demo mode')).toBeVisible();
+  await page.getByRole('link', { name: 'Continue to reset password' }).click();
+  await page.getByLabel('New password').fill(updatedPassword);
+  await page.getByRole('button', { name: 'Reset password' }).click();
+  await expect(page.getByText('Password updated. You can now sign in.')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Back to sign in' }).click();
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(updatedPassword);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+});

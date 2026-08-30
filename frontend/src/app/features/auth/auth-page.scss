@@ -120,8 +120,8 @@ a:hover {
   color: #92400e;
   font-size: 12px;
 }
-.dev-token code {
-  overflow-wrap: anywhere;
+.dev-token span {
+  line-height: 1.5;
 }
 @media (max-width: 900px) {
   .mobile-brand {

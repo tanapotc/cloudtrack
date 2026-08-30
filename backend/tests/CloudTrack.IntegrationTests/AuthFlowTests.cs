@@ -59,6 +59,26 @@ public sealed class AuthFlowTests(CloudTrackApiFactory factory) : IClassFixture<
     }
 
     [Fact]
+    public async Task DemoResetModeReturnsIndistinguishableOneTimeLinks()
+    {
+        using var demoFactory = factory.WithWebHostBuilder(builder => builder.ConfigureAppConfiguration(
+            (_, configuration) => configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Auth:ExposeDevelopmentResetToken"] = "true",
+            })));
+        using var client = demoFactory.CreateClient();
+        var missingEmail = $"missing-{Guid.NewGuid():N}@example.test";
+
+        var forgot = await client.PostAsJsonAsync("/api/auth/forgot-password", new ForgotPasswordRequest(missingEmail));
+        forgot.EnsureSuccessStatusCode();
+        var result = await forgot.Content.ReadFromJsonAsync<ForgotPasswordResult>();
+        var decoyToken = Assert.IsType<string>(result?.DevelopmentResetToken);
+
+        var reset = await client.PostAsJsonAsync("/api/auth/reset-password", new ResetPasswordRequest(decoyToken, "Updated!567"));
+        Assert.Equal(HttpStatusCode.BadRequest, reset.StatusCode);
+    }
+
+    [Fact]
     public async Task RefreshTokenIsRotatedAndCannotBeReplayed()
     {
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });

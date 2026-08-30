@@ -111,6 +111,12 @@ public sealed class AuthService(
             });
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+        else if (_authOptions.ExposeDevelopmentResetToken)
+        {
+            // Demo mode always returns a token-shaped value so the response does not reveal account existence.
+            // This decoy is intentionally not persisted and therefore cannot reset a password.
+            rawToken = CreateSecureToken();
+        }
 
         return new ForgotPasswordResult(
             "If the account exists, password reset instructions have been prepared.",
