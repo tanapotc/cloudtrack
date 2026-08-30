@@ -94,8 +94,7 @@ app.MapHealthChecks("/health");
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await new DatabaseInitializer(dbContext).InitializeAsync();
+    await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync();
 }
 
 app.Run();

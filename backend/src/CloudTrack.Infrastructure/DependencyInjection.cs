@@ -1,11 +1,13 @@
 using CloudTrack.Application.Auth;
 using CloudTrack.Application.Dashboard;
 using CloudTrack.Application.Projects;
+using CloudTrack.Application.Users;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Infrastructure.Auth;
 using CloudTrack.Infrastructure.Persistence;
 using CloudTrack.Infrastructure.Dashboard;
 using CloudTrack.Infrastructure.Projects;
+using CloudTrack.Infrastructure.Users;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -42,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IUserManagementService, UserManagementService>();
+        services.AddScoped<DatabaseInitializer>();
         return services;
     }
 }

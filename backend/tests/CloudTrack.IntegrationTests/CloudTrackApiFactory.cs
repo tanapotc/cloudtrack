@@ -25,6 +25,8 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = "integration-test-signing-key-that-is-long-enough",
                 ["Auth:ExposeDevelopmentResetToken"] = "false",
                 ["Cors:AllowedOrigins:0"] = "http://localhost",
+                ["Seed:AdminEmail"] = "admin@example.test",
+                ["Seed:AdminPassword"] = "IntegrationAdmin!234",
             }));
         builder.ConfigureServices(services =>
         {
@@ -42,4 +44,3 @@ public sealed class CloudTrackApiFactory : WebApplicationFactory<Program>
         }
     }
 }
-
