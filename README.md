@@ -11,6 +11,7 @@ Live authentication routes:
 - [Login](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/login)
 - [Register](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/register)
 - [Forgot password](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/auth/forgot-password)
+- [Swagger API documentation](https://app-cloudtrack-dev-xe3xxsh.azurewebsites.net/api-docs)
 
 > Password recovery currently runs in clearly labelled portfolio demo mode. The API creates a 30-minute, single-use reset token and the UI exposes only a continue link because no email account or API key is stored in the demo. Responses include a non-persisted decoy token for unknown addresses so the response shape does not reveal whether an account exists. Replace this fallback with transactional email before using CloudTrack for real user data.
 
@@ -121,7 +122,7 @@ After changing an entity, add a migration and it applies on the next run:
 dotnet ef migrations add <Name> --project backend/src/CloudTrack.Infrastructure --startup-project backend/src/CloudTrack.Infrastructure
 ```
 
-Swagger is available at `http://localhost:5080/swagger` in Development and health at `http://localhost:5080/health`.
+Swagger is available at `http://localhost:5080/api-docs` and health at `http://localhost:5080/health`.
 
 ### 2. Run the Angular app
 

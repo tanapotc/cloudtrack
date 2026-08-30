@@ -108,13 +108,15 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
 {
+    var isApiDocumentation = context.Request.Path.StartsWithSegments("/api-docs");
     context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     context.Response.Headers.Append(
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; " +
-        "script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
+        $"script-src 'self'{(isApiDocumentation ? " 'unsafe-inline'" : string.Empty)}; " +
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
         "font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'");
     await next();
 });
@@ -128,10 +130,12 @@ if (app.Environment.IsProduction())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseSwagger();
-if (app.Environment.IsDevelopment())
+app.UseSwaggerUI(options =>
 {
-    app.UseSwaggerUI();
-}
+    options.RoutePrefix = "api-docs";
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "CloudTrack API v1");
+    options.DocumentTitle = "CloudTrack API documentation";
+});
 
 app.UseCors("web");
 app.UseRateLimiter();

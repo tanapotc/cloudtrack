@@ -1,6 +1,9 @@
 # API surface
 
-All routes are under `/api`. Swagger is enabled only in Development.
+All business routes are under `/api`. Interactive Swagger UI is available at
+`/api-docs` in every environment because this is a portfolio project; its OpenAPI
+document remains available at `/swagger/v1/swagger.json`. Protected operations still
+require a valid bearer token through the Swagger **Authorize** control.
 
 ## Authentication
 

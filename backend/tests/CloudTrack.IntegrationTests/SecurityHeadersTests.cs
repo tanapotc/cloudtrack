@@ -19,4 +19,19 @@ public sealed class SecurityHeadersTests(CloudTrackApiFactory factory) : IClassF
         Assert.Equal("nosniff", Assert.Single(response.Headers.GetValues("X-Content-Type-Options")));
         Assert.Equal("DENY", Assert.Single(response.Headers.GetValues("X-Frame-Options")));
     }
+
+    [Fact]
+    public async Task ApiDocumentationIsPublishedWithoutWeakeningTheApplicationPolicy()
+    {
+        var documentation = await _client.GetAsync("/api-docs/index.html");
+        var application = await _client.GetAsync("/health");
+
+        documentation.EnsureSuccessStatusCode();
+        var documentationPolicy = Assert.Single(documentation.Headers.GetValues("Content-Security-Policy"));
+        Assert.Contains("script-src 'self' 'unsafe-inline'", documentationPolicy, StringComparison.Ordinal);
+
+        var applicationPolicy = Assert.Single(application.Headers.GetValues("Content-Security-Policy"));
+        Assert.Contains("script-src 'self';", applicationPolicy, StringComparison.Ordinal);
+        Assert.DoesNotContain("script-src 'self' 'unsafe-inline'", applicationPolicy, StringComparison.Ordinal);
+    }
 }
