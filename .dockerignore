@@ -6,9 +6,9 @@
 **/dist
 **/coverage
 **/TestResults
+**/.vs
 **/*.db
 .env
 .env.*
 !.env.example
 docs
-
