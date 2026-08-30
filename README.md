@@ -71,6 +71,21 @@ sequenceDiagram
 
 The browser never receives database credentials or the JWT signing key. Non-secret Angular configuration is compiled with the frontend, while connection strings and signing settings are injected only into the backend through protected App Service application settings. The access token stays in memory; the refresh token is stored in a `Secure`, `HttpOnly`, same-site cookie.
 
+### Frontend component structure
+
+Page and layout components keep TypeScript logic, Angular markup, and component-scoped styling in co-located files:
+
+```text
+auth/
+  auth-page.ts       Signals, reactive form state, validation, and service calls
+  auth-page.html     Login, register, forgot-password, and reset-password markup
+  auth-page.scss     Authentication page styles and responsive rules
+```
+
+The same `.ts` / `.html` / `.scss` convention is used by layouts, dashboard, profile, admin, projects, and shared feature pages. Angular's built-in style encapsulation remains enabled, while `src/styles.scss` is reserved for the Material theme, typography, reset rules, and genuinely global styles. The root `app.ts` intentionally keeps its single `<router-outlet />` inline because extracting a one-line template would add indirection without improving maintainability.
+
+`angular.json` configures future standalone components to use external HTML and SCSS by default (`inlineTemplate: false`, `inlineStyle: false`, `style: scss`).
+
 ## Technology
 
 | Area | Choice |
@@ -153,7 +168,7 @@ backend/
   src/CloudTrack.Infrastructure/  EF Core, authentication, services
   src/CloudTrack.Api/             HTTP boundary and composition root
   tests/                          Unit and integration tests
-frontend/                         Angular application and Playwright tests
+frontend/                         Angular app with co-located TS, HTML, and SCSS page files
 infra/main.bicep                  Lowest-cost learning environment template
 .github/workflows/                CI and gated Azure delivery
 docs/                             Architecture, operations, and interview notes
