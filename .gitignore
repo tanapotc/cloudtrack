@@ -1,0 +1,40 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Angular / Node
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Development.local.json
+**/appsettings.Production.json
+*.pfx
+*.p12
+*.key
+
+# Local databases and logs
+*.db
+*.db-shm
+*.db-wal
+logs/
+
+# IDE / OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+TestResults/
+playwright-report/
+test-results/
+
