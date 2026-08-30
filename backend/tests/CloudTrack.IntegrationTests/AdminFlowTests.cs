@@ -4,6 +4,8 @@ using CloudTrack.Api.Controllers;
 using CloudTrack.Application.Auth;
 using CloudTrack.Application.Common;
 using CloudTrack.Application.Users;
+using CloudTrack.Application.Security;
+using System.Net;
 
 namespace CloudTrack.IntegrationTests;
 
@@ -23,11 +25,20 @@ public sealed class AdminFlowTests(CloudTrackApiFactory factory) : IClassFixture
 
         var users = await _client.GetFromJsonAsync<PagedResult<ManagedUserSummary>>("/api/admin/users");
         var roles = await _client.GetFromJsonAsync<IReadOnlyCollection<RoleSummary>>("/api/admin/roles");
+        var permissions = await _client.GetFromJsonAsync<IReadOnlyCollection<PermissionSummary>>("/api/admin/permissions");
 
         Assert.NotNull(users);
         Assert.Contains(users.Items, user => user.Email == "admin@example.test");
         Assert.NotNull(roles);
         Assert.Equal(3, roles.Count);
+        Assert.NotNull(permissions);
+        Assert.Equal(PermissionNames.All.Count, permissions.Count);
+        Assert.Contains(PermissionNames.ManageRoles, auth.User.Permissions);
+
+        var adminRole = roles.Single(role => role.Name == "Admin");
+        var protectedUpdate = await _client.PutAsJsonAsync(
+            $"/api/admin/roles/{adminRole.Id}/permissions",
+            new UpdateRolePermissionsRequest([PermissionNames.ReadProjects]));
+        Assert.Equal(HttpStatusCode.Conflict, protectedUpdate.StatusCode);
     }
 }
-

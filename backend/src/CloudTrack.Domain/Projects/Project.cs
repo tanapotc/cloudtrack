@@ -1,4 +1,5 @@
 using CloudTrack.Domain.Common;
+using CloudTrack.Domain.Identity;
 
 namespace CloudTrack.Domain.Projects;
 
@@ -22,6 +23,7 @@ public sealed class ProjectMember
     public Guid ProjectId { get; set; }
     public Project Project { get; set; } = null!;
     public Guid UserId { get; set; }
+    public AppUser User { get; set; } = null!;
     public DateTimeOffset JoinedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
@@ -44,6 +46,6 @@ public sealed class WorkItemComment : Entity
     public Guid WorkItemId { get; set; }
     public WorkItem WorkItem { get; set; } = null!;
     public Guid AuthorId { get; set; }
+    public AppUser Author { get; set; } = null!;
     public required string Body { get; set; }
 }
-

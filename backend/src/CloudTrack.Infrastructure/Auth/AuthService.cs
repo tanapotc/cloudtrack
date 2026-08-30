@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using CloudTrack.Application.Auth;
 using CloudTrack.Application.Common;
+using CloudTrack.Application.Security;
 using CloudTrack.Domain.Auditing;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Infrastructure.Persistence;
@@ -40,18 +41,19 @@ public sealed class AuthService(
         };
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
-        var role = await dbContext.Roles.SingleAsync(x => x.Name == "User", cancellationToken);
+        var role = await dbContext.Roles.Include(x => x.RolePermissions).ThenInclude(x => x.Permission)
+            .SingleAsync(x => x.Name == "User", cancellationToken);
         user.UserRoles.Add(new UserRole { User = user, Role = role });
         dbContext.Users.Add(user);
         dbContext.AuditLogs.Add(new AuditLog { ActorId = user.Id, Action = "UserRegistered", EntityType = "User", EntityId = user.Id.ToString() });
         await dbContext.SaveChangesAsync(cancellationToken);
-        return await IssueTokensAsync(user, [role.Name], cancellationToken);
+        return await IssueTokensAsync(user, [role.Name], role.RolePermissions.Select(x => x.Permission.Name).ToArray(), cancellationToken);
     }
 
     public async Task<AuthResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
         var user = await dbContext.Users
-            .Include(x => x.UserRoles).ThenInclude(x => x.Role)
+            .Include(x => x.UserRoles).ThenInclude(x => x.Role).ThenInclude(x => x.RolePermissions).ThenInclude(x => x.Permission)
             .SingleOrDefaultAsync(x => x.NormalizedEmail == NormalizeEmail(request.Email), cancellationToken);
 
         if (user is null || !user.IsActive || passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
@@ -61,14 +63,14 @@ public sealed class AuthService(
 
         user.LastLoginAt = DateTimeOffset.UtcNow;
         dbContext.AuditLogs.Add(new AuditLog { ActorId = user.Id, Action = "UserLoggedIn", EntityType = "User", EntityId = user.Id.ToString() });
-        return await IssueTokensAsync(user, user.UserRoles.Select(x => x.Role.Name).ToArray(), cancellationToken);
+        return await IssueTokensAsync(user, Roles(user), Permissions(user), cancellationToken);
     }
 
     public async Task<AuthResult> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
     {
         var tokenHash = HashToken(refreshToken);
         var stored = await dbContext.RefreshTokens
-            .Include(x => x.User).ThenInclude(x => x.UserRoles).ThenInclude(x => x.Role)
+            .Include(x => x.User).ThenInclude(x => x.UserRoles).ThenInclude(x => x.Role).ThenInclude(x => x.RolePermissions).ThenInclude(x => x.Permission)
             .SingleOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
 
         if (stored is null || !stored.IsActive || !stored.User.IsActive)
@@ -77,7 +79,7 @@ public sealed class AuthService(
         }
 
         stored.RevokedAt = DateTimeOffset.UtcNow;
-        var result = await IssueTokensAsync(stored.User, stored.User.UserRoles.Select(x => x.Role.Name).ToArray(), cancellationToken);
+        var result = await IssueTokensAsync(stored.User, Roles(stored.User), Permissions(stored.User), cancellationToken);
         stored.ReplacedByTokenId = await dbContext.RefreshTokens.Where(x => x.TokenHash == HashToken(result.RefreshToken)).Select(x => x.Id).SingleAsync(cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return result;
@@ -147,13 +149,17 @@ public sealed class AuthService(
     public async Task<UserSummary> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await dbContext.Users.AsNoTracking()
-            .Where(x => x.Id == userId)
-            .Select(x => new UserSummary(x.Id, x.Email, x.DisplayName, x.UserRoles.Select(r => r.Role.Name).ToArray()))
-            .SingleOrDefaultAsync(cancellationToken);
-        return user ?? throw new AppException(404, "User not found", "The current user no longer exists.");
+            .Include(x => x.UserRoles).ThenInclude(x => x.Role).ThenInclude(x => x.RolePermissions).ThenInclude(x => x.Permission)
+            .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
+            ?? throw new AppException(404, "User not found", "The current user no longer exists.");
+        return new UserSummary(user.Id, user.Email, user.DisplayName, Roles(user), Permissions(user));
     }
 
-    private async Task<AuthResult> IssueTokensAsync(AppUser user, IReadOnlyCollection<string> roles, CancellationToken cancellationToken)
+    private async Task<AuthResult> IssueTokensAsync(
+        AppUser user,
+        IReadOnlyCollection<string> roles,
+        IReadOnlyCollection<string> permissions,
+        CancellationToken cancellationToken)
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtOptions.AccessTokenMinutes);
         var claims = new List<Claim>
@@ -164,6 +170,7 @@ public sealed class AuthService(
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        claims.AddRange(permissions.Select(permission => new Claim(PermissionNames.ClaimType, permission)));
 
         var credentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SigningKey)),
@@ -178,7 +185,7 @@ public sealed class AuthService(
         });
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new AuthResult(new JwtSecurityTokenHandler().WriteToken(token), refreshToken, expiresAt, new UserSummary(user.Id, user.Email, user.DisplayName, roles));
+        return new AuthResult(new JwtSecurityTokenHandler().WriteToken(token), refreshToken, expiresAt, new UserSummary(user.Id, user.Email, user.DisplayName, roles, permissions));
     }
 
     private async Task RevokeAllTokensAsync(Guid userId, CancellationToken cancellationToken)
@@ -188,6 +195,12 @@ public sealed class AuthService(
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToUpperInvariant();
+    private static string[] Roles(AppUser user) => user.UserRoles.Select(x => x.Role.Name).Distinct(StringComparer.Ordinal).ToArray();
+    private static string[] Permissions(AppUser user) => user.UserRoles
+        .SelectMany(x => x.Role.RolePermissions)
+        .Select(x => x.Permission.Name)
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
     private static string CreateSecureToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }

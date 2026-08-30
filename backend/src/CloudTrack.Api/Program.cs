@@ -5,6 +5,7 @@ using CloudTrack.Api.Errors;
 using CloudTrack.Infrastructure;
 using CloudTrack.Infrastructure.Auth;
 using CloudTrack.Infrastructure.Persistence;
+using CloudTrack.Application.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -55,7 +56,13 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             RoleClaimType = ClaimTypes.Role,
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in PermissionNames.All)
+    {
+        options.AddPolicy(permission, policy => policy.RequireClaim(PermissionNames.ClaimType, permission));
+    }
+});
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddPolicy("web", policy =>

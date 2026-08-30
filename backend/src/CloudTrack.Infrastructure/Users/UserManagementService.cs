@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CloudTrack.Application.Common;
 using CloudTrack.Application.Users;
+using CloudTrack.Application.Security;
 using CloudTrack.Domain.Auditing;
 using CloudTrack.Domain.Identity;
 using CloudTrack.Infrastructure.Persistence;
@@ -30,7 +31,12 @@ public sealed class UserManagementService(AppDbContext dbContext) : IUserManagem
 
     public async Task<IReadOnlyCollection<RoleSummary>> ListRolesAsync(CancellationToken cancellationToken)
         => await dbContext.Roles.AsNoTracking().OrderBy(x => x.Name)
-            .Select(x => new RoleSummary(x.Id, x.Name, x.Description, x.UserRoles.Count))
+            .Select(x => new RoleSummary(x.Id, x.Name, x.Description, x.UserRoles.Count, x.RolePermissions.Select(grant => grant.Permission.Name).OrderBy(name => name).ToArray()))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyCollection<PermissionSummary>> ListPermissionsAsync(CancellationToken cancellationToken)
+        => await dbContext.Permissions.AsNoTracking().OrderBy(x => x.Name)
+            .Select(x => new PermissionSummary(x.Id, x.Name, x.Description, x.RolePermissions.Count))
             .ToListAsync(cancellationToken);
 
     public async Task<ManagedUserSummary> UpdateRolesAsync(Guid actorId, Guid userId, UpdateUserRolesRequest request, CancellationToken cancellationToken)
@@ -82,6 +88,37 @@ public sealed class UserManagementService(AppDbContext dbContext) : IUserManagem
         return await GetUserAsync(user.Id, cancellationToken);
     }
 
+    public async Task<RoleSummary> UpdateRolePermissionsAsync(Guid actorId, Guid roleId, UpdateRolePermissionsRequest request, CancellationToken cancellationToken)
+    {
+        var names = request.Permissions.Select(x => x.Trim()).Distinct(StringComparer.Ordinal).ToArray();
+        var permissions = await dbContext.Permissions.Where(x => names.Contains(x.Name)).ToListAsync(cancellationToken);
+        if (permissions.Count != names.Length)
+        {
+            throw new AppException(400, "Unknown permission", "One or more requested permissions do not exist.");
+        }
+
+        var role = await dbContext.Roles.Include(x => x.RolePermissions).SingleOrDefaultAsync(x => x.Id == roleId, cancellationToken)
+            ?? throw new AppException(404, "Role not found", "The requested role does not exist.");
+        if (role.Name == "Admin" && (!names.Contains(PermissionNames.ManageUsers, StringComparer.Ordinal) || !names.Contains(PermissionNames.ManageRoles, StringComparer.Ordinal)))
+        {
+            throw new AppException(409, "Admin permissions protected", "The Admin role must retain user and role management permissions.");
+        }
+
+        var requestedIds = permissions.Select(x => x.Id).ToHashSet();
+        dbContext.RolePermissions.RemoveRange(role.RolePermissions.Where(x => !requestedIds.Contains(x.PermissionId)));
+        var existingIds = role.RolePermissions.Select(x => x.PermissionId).ToHashSet();
+        foreach (var permission in permissions.Where(x => !existingIds.Contains(x.Id)))
+        {
+            role.RolePermissions.Add(new RolePermissionGrant { RoleId = role.Id, PermissionId = permission.Id });
+        }
+
+        AddAudit(actorId, "RolePermissionsUpdated", role.Id, new { role.Name, Permissions = names }, "Role");
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await dbContext.Roles.AsNoTracking().Where(x => x.Id == role.Id)
+            .Select(x => new RoleSummary(x.Id, x.Name, x.Description, x.UserRoles.Count, x.RolePermissions.Select(grant => grant.Permission.Name).OrderBy(name => name).ToArray()))
+            .SingleAsync(cancellationToken);
+    }
+
     private Task<int> ActiveAdminCountAsync(CancellationToken cancellationToken)
         => dbContext.Users.CountAsync(x => x.IsActive && x.UserRoles.Any(role => role.Role.Name == "Admin"), cancellationToken);
 
@@ -90,12 +127,12 @@ public sealed class UserManagementService(AppDbContext dbContext) : IUserManagem
             .Select(x => new ManagedUserSummary(x.Id, x.Email, x.DisplayName, x.IsActive, x.CreatedAt, x.LastLoginAt, x.UserRoles.Select(role => role.Role.Name).ToArray()))
             .SingleAsync(cancellationToken);
 
-    private void AddAudit(Guid actorId, string action, Guid userId, object? metadata) => dbContext.AuditLogs.Add(new AuditLog
+    private void AddAudit(Guid actorId, string action, Guid entityId, object? metadata, string entityType = "User") => dbContext.AuditLogs.Add(new AuditLog
     {
         ActorId = actorId,
         Action = action,
-        EntityType = "User",
-        EntityId = userId.ToString(),
+        EntityType = entityType,
+        EntityId = entityId.ToString(),
         Metadata = metadata is null ? null : JsonSerializer.Serialize(metadata),
     });
 }

@@ -58,10 +58,12 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
     public async Task<ProjectDetails> GetAsync(Guid userId, Guid projectId, CancellationToken cancellationToken)
     {
         var project = await VisibleProjects(userId).AsNoTracking()
-            .Where(x => x.Id == projectId)
-            .Select(x => ToDetails(x))
-            .SingleOrDefaultAsync(cancellationToken);
-        return project ?? throw NotFound();
+            .Include(x => x.Members)
+                .ThenInclude(x => x.User)
+            .Include(x => x.WorkItems)
+                .ThenInclude(x => x.Comments)
+            .SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken);
+        return project is null ? throw NotFound() : ToDetails(project);
     }
 
     public async Task<ProjectDetails> CreateAsync(Guid userId, CreateProjectRequest request, CancellationToken cancellationToken)
@@ -106,7 +108,7 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
 
     public async Task<WorkItemSummary> CreateWorkItemAsync(Guid userId, Guid projectId, CreateWorkItemRequest request, CancellationToken cancellationToken)
     {
-        _ = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        _ = await VisibleProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
         var workItem = new WorkItem
         {
             ProjectId = projectId,
@@ -123,11 +125,15 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
 
     public async Task<WorkItemSummary> UpdateWorkItemAsync(Guid userId, Guid projectId, Guid workItemId, UpdateWorkItemRequest request, CancellationToken cancellationToken)
     {
-        _ = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        var project = await VisibleProjects(userId).Include(x => x.Members).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
         var workItem = await dbContext.WorkItems.SingleOrDefaultAsync(x => x.Id == workItemId && x.ProjectId == projectId, cancellationToken) ?? throw NotFound();
         if (workItem.Version != request.Version)
         {
             throw new AppException(409, "Concurrent update", "This task changed after you loaded it. Refresh and try again.");
+        }
+        if (request.AssigneeId.HasValue && project.Members.All(x => x.UserId != request.AssigneeId.Value))
+        {
+            throw new AppException(400, "Invalid assignee", "Tasks can only be assigned to an active project member.");
         }
 
         workItem.Title = request.Title.Trim();
@@ -145,10 +151,98 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
 
     public async Task DeleteWorkItemAsync(Guid userId, Guid projectId, Guid workItemId, CancellationToken cancellationToken)
     {
-        _ = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        _ = await VisibleProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
         var workItem = await dbContext.WorkItems.SingleOrDefaultAsync(x => x.Id == workItemId && x.ProjectId == projectId, cancellationToken) ?? throw NotFound();
         dbContext.WorkItems.Remove(workItem);
         AddAudit(userId, "WorkItemDeleted", workItem.Id, new { workItem.Title, ProjectId = projectId });
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<ProjectMemberSummary>> ListMembersAsync(Guid userId, Guid projectId, CancellationToken cancellationToken)
+    {
+        _ = await VisibleProjects(userId).AsNoTracking().SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        return await dbContext.ProjectMembers.AsNoTracking()
+            .Where(x => x.ProjectId == projectId)
+            .OrderBy(x => x.User.DisplayName)
+            .Select(x => new ProjectMemberSummary(x.UserId, x.User.Email, x.User.DisplayName, x.JoinedAt, x.Project.OwnerId == x.UserId))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<ProjectMemberSummary> AddMemberAsync(Guid userId, Guid projectId, AddProjectMemberRequest request, CancellationToken cancellationToken)
+    {
+        var project = await OwnedProjects(userId).Include(x => x.Members).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        var normalizedEmail = request.Email.Trim().ToUpperInvariant();
+        var member = await dbContext.Users.AsNoTracking().SingleOrDefaultAsync(x => x.NormalizedEmail == normalizedEmail && x.IsActive, cancellationToken)
+            ?? throw new AppException(404, "User not found", "No active CloudTrack account uses that email address.");
+        if (project.Members.Any(x => x.UserId == member.Id))
+        {
+            throw new AppException(409, "Member already added", "This user is already a project member.");
+        }
+
+        var projectMember = new ProjectMember { ProjectId = projectId, UserId = member.Id };
+        dbContext.ProjectMembers.Add(projectMember);
+        AddAudit(userId, "ProjectMemberAdded", projectId, new { MemberUserId = projectMember.UserId, project.Name });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ProjectMemberSummary(member.Id, member.Email, member.DisplayName, projectMember.JoinedAt, false);
+    }
+
+    public async Task RemoveMemberAsync(Guid userId, Guid projectId, Guid memberUserId, CancellationToken cancellationToken)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        var project = await OwnedProjects(userId).SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        if (project.OwnerId == memberUserId)
+        {
+            throw new AppException(409, "Owner protected", "Transfer ownership before removing the project owner.");
+        }
+
+        var membership = await dbContext.ProjectMembers.SingleOrDefaultAsync(x => x.ProjectId == projectId && x.UserId == memberUserId, cancellationToken) ?? throw NotFound();
+        dbContext.ProjectMembers.Remove(membership);
+        await dbContext.WorkItems.Where(x => x.ProjectId == projectId && x.AssigneeId == memberUserId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.AssigneeId, (Guid?)null), cancellationToken);
+        AddAudit(userId, "ProjectMemberRemoved", projectId, new { MemberUserId = memberUserId, project.Name });
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<WorkItemCommentSummary>> ListCommentsAsync(Guid userId, Guid projectId, Guid workItemId, CancellationToken cancellationToken)
+    {
+        _ = await VisibleProjects(userId).AsNoTracking().SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        var taskExists = await dbContext.WorkItems.AsNoTracking().AnyAsync(x => x.Id == workItemId && x.ProjectId == projectId, cancellationToken);
+        if (!taskExists)
+        {
+            throw NotFound();
+        }
+
+        return await dbContext.WorkItemComments.AsNoTracking()
+            .Where(x => x.WorkItemId == workItemId)
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => new WorkItemCommentSummary(x.Id, x.WorkItemId, x.AuthorId, x.Author.DisplayName, x.Body, x.CreatedAt, x.UpdatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<WorkItemCommentSummary> CreateCommentAsync(Guid userId, Guid projectId, Guid workItemId, CreateWorkItemCommentRequest request, CancellationToken cancellationToken)
+    {
+        _ = await VisibleProjects(userId).AsNoTracking().SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        var workItem = await dbContext.WorkItems.AsNoTracking().SingleOrDefaultAsync(x => x.Id == workItemId && x.ProjectId == projectId, cancellationToken) ?? throw NotFound();
+        var authorName = await dbContext.Users.AsNoTracking().Where(x => x.Id == userId).Select(x => x.DisplayName).SingleAsync(cancellationToken);
+        var comment = new WorkItemComment { WorkItemId = workItem.Id, AuthorId = userId, Body = request.Body.Trim() };
+        dbContext.WorkItemComments.Add(comment);
+        AddAudit(userId, "CommentCreated", comment.Id, new { ProjectId = projectId, WorkItemId = workItemId }, "Comment");
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new WorkItemCommentSummary(comment.Id, comment.WorkItemId, comment.AuthorId, authorName, comment.Body, comment.CreatedAt, comment.UpdatedAt);
+    }
+
+    public async Task DeleteCommentAsync(Guid userId, Guid projectId, Guid workItemId, Guid commentId, CancellationToken cancellationToken)
+    {
+        var project = await VisibleProjects(userId).AsNoTracking().SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken) ?? throw NotFound();
+        var comment = await dbContext.WorkItemComments.SingleOrDefaultAsync(x => x.Id == commentId && x.WorkItemId == workItemId && x.WorkItem.ProjectId == projectId, cancellationToken) ?? throw NotFound();
+        if (comment.AuthorId != userId && project.OwnerId != userId)
+        {
+            throw new AppException(403, "Comment deletion denied", "Only the author or project owner can remove this comment.");
+        }
+
+        dbContext.WorkItemComments.Remove(comment);
+        AddAudit(userId, "CommentDeleted", comment.Id, new { ProjectId = projectId, WorkItemId = workItemId }, "Comment");
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
@@ -164,18 +258,18 @@ public sealed class ProjectService(AppDbContext dbContext) : IProjectService
         project.Version,
         project.CreatedAt,
         project.UpdatedAt,
+        project.Members.OrderBy(x => x.User.DisplayName).Select(x => new ProjectMemberSummary(x.UserId, x.User.Email, x.User.DisplayName, x.JoinedAt, project.OwnerId == x.UserId)).ToArray(),
         project.WorkItems.OrderByDescending(x => x.UpdatedAt).Select(x => ToSummary(x, x.Comments.Count)).ToArray());
 
     private static WorkItemSummary ToSummary(WorkItem item, int commentCount) => new(item.Id, item.Title, item.Description, item.Status, item.Priority, item.DueDate, item.AssigneeId, item.Version, commentCount);
     private static AppException NotFound() => new(404, "Project item not found", "The item does not exist or you do not have access to it.");
 
-    private void AddAudit(Guid actorId, string action, Guid entityId, object metadata) => dbContext.AuditLogs.Add(new AuditLog
+    private void AddAudit(Guid actorId, string action, Guid entityId, object metadata, string? entityType = null) => dbContext.AuditLogs.Add(new AuditLog
     {
         ActorId = actorId,
         Action = action,
-        EntityType = action.StartsWith("Project", StringComparison.Ordinal) ? "Project" : "WorkItem",
+        EntityType = entityType ?? (action.StartsWith("Project", StringComparison.Ordinal) ? "Project" : "WorkItem"),
         EntityId = entityId.ToString(),
         Metadata = JsonSerializer.Serialize(metadata),
     });
 }
-

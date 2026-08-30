@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using CloudTrack.Api.Controllers;
 using CloudTrack.Application.Auth;
+using CloudTrack.Application.Security;
 
 namespace CloudTrack.IntegrationTests;
 
@@ -20,12 +21,14 @@ public sealed class AuthFlowTests(CloudTrackApiFactory factory) : IClassFixture<
         var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
         Assert.NotNull(auth);
         Assert.Contains("User", auth.User.Roles);
+        Assert.Contains(PermissionNames.ManageComments, auth.User.Permissions);
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
         var profile = await _client.GetFromJsonAsync<UserSummary>("/api/auth/me");
 
         Assert.NotNull(profile);
         Assert.Equal(email, profile.Email);
+        Assert.Contains(PermissionNames.ReadProjects, profile.Permissions);
     }
 
     [Fact]

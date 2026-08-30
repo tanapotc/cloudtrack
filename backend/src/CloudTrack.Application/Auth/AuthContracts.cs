@@ -16,7 +16,7 @@ public sealed record ForgotPasswordRequest([Required, EmailAddress] string Email
 public sealed record ResetPasswordRequest([Required] string Token, [Required, MinLength(8)] string NewPassword);
 public sealed record ChangePasswordRequest([Required] string CurrentPassword, [Required, MinLength(8)] string NewPassword);
 
-public sealed record UserSummary(Guid Id, string Email, string DisplayName, IReadOnlyCollection<string> Roles);
+public sealed record UserSummary(Guid Id, string Email, string DisplayName, IReadOnlyCollection<string> Roles, IReadOnlyCollection<string> Permissions);
 public sealed record AuthResult(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAt, UserSummary User);
 public sealed record ForgotPasswordResult(string Message, string? DevelopmentResetToken);
 
@@ -31,4 +31,3 @@ public interface IAuthService
     Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request, CancellationToken cancellationToken);
     Task<UserSummary> GetCurrentUserAsync(Guid userId, CancellationToken cancellationToken);
 }
-

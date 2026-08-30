@@ -43,6 +43,9 @@ public sealed class ProjectFlowTests(CloudTrackApiFactory factory) : IClassFixtu
         Assert.Equal(1, dashboard.ProjectCount);
         Assert.Equal(1, dashboard.ActiveProjectCount);
         Assert.Equal(1, dashboard.OpenTaskCount);
+        Assert.True(dashboard.TotalUserCount >= 1);
+        Assert.True(dashboard.LoginCountToday >= 1);
+        Assert.Equal("Connected", dashboard.DatabaseStatus);
     }
 
     private async Task AuthenticateAsync()
@@ -50,9 +53,10 @@ public sealed class ProjectFlowTests(CloudTrackApiFactory factory) : IClassFixtu
         var email = $"projects-{Guid.NewGuid():N}@example.test";
         var response = await _client.PostAsJsonAsync("/api/auth/register", new RegisterRequest(email, "Portfolio!234", "Project Owner"));
         response.EnsureSuccessStatusCode();
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        var login = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, "Portfolio!234"));
+        login.EnsureSuccessStatusCode();
+        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
         Assert.NotNull(auth);
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.AccessToken);
     }
 }
-
