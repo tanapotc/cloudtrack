@@ -156,6 +156,19 @@ h1 {
     transform 0.15s ease,
     box-shadow 0.15s ease;
 }
+.compact-cards .cards article {
+  padding: 11px;
+}
+.compact-cards .cards p {
+  min-height: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+.compact-cards .cards footer {
+  margin-top: 8px;
+}
 .cards article:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.09);

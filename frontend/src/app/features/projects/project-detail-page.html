@@ -30,7 +30,11 @@
       <p>Move work through a clear delivery flow.</p>
     </div>
   </div>
-  <section class="board" cdkDropListGroup>
+  <section
+    class="board"
+    cdkDropListGroup
+    [class.compact-cards]="workspacePreferences.preferences().compactTaskCards"
+  >
     @for (column of columns; track column.status) {
       <div class="column">
         <header>

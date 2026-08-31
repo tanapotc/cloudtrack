@@ -71,9 +71,8 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        data: { title: 'Settings', description: 'Configure workspace defaults and notifications.' },
         loadComponent: () =>
-          import('./features/shared/coming-soon-page').then((module) => module.ComingSoonPage),
+          import('./features/settings/settings-page').then((module) => module.SettingsPage),
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],

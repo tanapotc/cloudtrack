@@ -11,6 +11,7 @@ import { ApiService } from '../../core/api.service';
 import { ProjectDetails, WorkItemSummary } from '../../core/models';
 import { WorkItemStatus } from '../../api/models/work-item-status';
 import { TaskDialog, TaskDialogResult } from './task-dialog';
+import { WorkspacePreferencesService } from '../../core/workspace-preferences.service';
 
 @Component({
   selector: 'app-project-detail-page',
@@ -33,6 +34,7 @@ export class ProjectDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
+  readonly workspacePreferences = inject(WorkspacePreferencesService);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
   readonly project = signal<ProjectDetails | null>(null);
   readonly loading = signal(true);

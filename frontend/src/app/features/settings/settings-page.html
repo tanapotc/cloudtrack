@@ -1,0 +1,55 @@
+<div class="heading">
+  <span>WORKSPACE</span>
+  <h1>Settings</h1>
+  <p>Personalize how CloudTrack creates and displays your project work.</p>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="save()">
+  <section class="settings-card">
+    <header>
+      <span class="section-icon"><mat-icon>view_kanban</mat-icon></span>
+      <div>
+        <h2>Task board</h2>
+        <p>These preferences are saved only in this browser and never alter shared project data.</p>
+      </div>
+    </header>
+    <div class="setting-row">
+      <div>
+        <strong>Compact task cards</strong>
+        <p>Show denser cards to fit more work on the board.</p>
+      </div>
+      <mat-slide-toggle formControlName="compactTaskCards" aria-label="Use compact task cards" />
+    </div>
+    <div class="setting-row default-priority">
+      <div>
+        <strong>Default task priority</strong>
+        <p>Preselect a priority when creating a new task.</p>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Priority</mat-label>
+        <mat-select formControlName="defaultTaskPriority">
+          <mat-option [value]="0">Low</mat-option>
+          <mat-option [value]="1">Medium</mat-option>
+          <mat-option [value]="2">High</mat-option>
+          <mat-option [value]="3">Critical</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </section>
+  <section class="settings-card privacy-card">
+    <span class="section-icon"><mat-icon>lock</mat-icon></span>
+    <div>
+      <h2>Privacy by design</h2>
+      <p>
+        Preferences are stored locally in your browser. Account security and project data remain
+        managed by the API.
+      </p>
+    </div>
+  </section>
+  <div class="actions">
+    @if (saved()) {
+      <span class="saved"><mat-icon>check_circle</mat-icon>Preferences saved</span>
+    }
+    <button mat-flat-button type="submit"><mat-icon>save</mat-icon>Save preferences</button>
+  </div>
+</form>

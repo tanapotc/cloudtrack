@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { WorkspacePreferencesService } from '../../core/workspace-preferences.service';
 
 export interface TaskDialogResult {
   title: string;
@@ -31,10 +32,11 @@ export interface TaskDialogResult {
 export class TaskDialog {
   private readonly fb = inject(FormBuilder);
   private readonly dialogRef = inject(MatDialogRef<TaskDialog, TaskDialogResult>);
+  private readonly workspacePreferences = inject(WorkspacePreferencesService);
   readonly form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(160)]],
     description: ['', [Validators.maxLength(2000)]],
-    priority: [1],
+    priority: [this.workspacePreferences.preferences().defaultTaskPriority],
     dueDate: [''],
   });
 
