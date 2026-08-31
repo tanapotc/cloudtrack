@@ -76,3 +76,135 @@ a {
   --mat-button-filled-container-color: #2563eb;
   --mat-button-filled-label-text-color: #ffffff;
 }
+
+// Shared overlay styling for every Angular Material menu. Keep this global because menus render
+// inside the CDK overlay container, outside a component's style scope.
+.mat-mdc-menu-panel.app-menu {
+  min-width: 220px;
+  overflow: hidden;
+  border: 1px solid #e5e9f0;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.app-menu .mat-mdc-menu-content {
+  padding: 7px;
+}
+
+.app-menu .mat-mdc-menu-item {
+  min-height: 42px;
+  margin: 1px 0;
+  padding: 0 10px;
+  border-radius: 9px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 650;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.app-menu .mat-mdc-menu-item:hover,
+.app-menu .mat-mdc-menu-item:focus-visible {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.app-menu .mat-mdc-menu-item .mat-icon {
+  margin-right: 10px;
+  color: #64748b;
+  font-size: 19px;
+}
+
+.app-menu .mat-divider {
+  margin: 7px 3px;
+  border-top-color: #edf0f5;
+}
+
+.app-menu__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 7px 12px;
+  color: #0f172a;
+}
+
+.app-menu__profile strong,
+.app-menu__profile small {
+  display: block;
+  max-width: 156px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-menu__profile strong {
+  font-size: 12px;
+}
+
+.app-menu__profile small {
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.app-menu__avatar {
+  display: grid;
+  flex: 0 0 34px;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #60a5fa, #2563eb);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.app-menu__label {
+  padding: 5px 10px 7px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.app-menu--status .mat-mdc-menu-item {
+  min-width: 170px;
+}
+
+.menu-status-dot {
+  width: 8px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.menu-status-dot.blue {
+  background: #3b82f6;
+}
+
+.menu-status-dot.violet {
+  background: #8b5cf6;
+}
+
+.menu-status-dot.green {
+  background: #10b981;
+}
+
+.app-menu .mat-mdc-menu-item.app-menu__danger {
+  color: #b91c1c;
+}
+
+.app-menu .mat-mdc-menu-item.app-menu__danger .mat-icon {
+  color: #dc2626;
+}
+
+.app-menu .mat-mdc-menu-item.app-menu__danger:hover,
+.app-menu .mat-mdc-menu-item.app-menu__danger:focus-visible {
+  color: #b91c1c;
+  background: #fef2f2;
+}

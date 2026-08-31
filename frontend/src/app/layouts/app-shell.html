@@ -58,8 +58,23 @@
     <main><router-outlet /></main>
   </section>
 </div>
-<mat-menu #accountMenu="matMenu" xPosition="before">
-  <button mat-menu-item routerLink="/profile"><mat-icon>person</mat-icon>Profile</button>
-  <button mat-menu-item routerLink="/settings"><mat-icon>settings</mat-icon>Settings</button>
-  <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Sign out</button>
+<mat-menu #accountMenu="matMenu" xPosition="before" class="app-menu app-menu--account">
+  <div class="app-menu__profile">
+    <span class="app-menu__avatar">{{ initials() }}</span>
+    <span>
+      <strong>{{ auth.currentUser()?.displayName ?? 'CloudTrack member' }}</strong>
+      <small>{{ auth.currentUser()?.email }}</small>
+    </span>
+  </div>
+  <mat-divider />
+  <button mat-menu-item routerLink="/profile">
+    <mat-icon>person</mat-icon><span>Profile</span>
+  </button>
+  <button mat-menu-item routerLink="/settings">
+    <mat-icon>tune</mat-icon><span>Settings</span>
+  </button>
+  <mat-divider />
+  <button mat-menu-item class="app-menu__danger" (click)="auth.logout()">
+    <mat-icon>logout</mat-icon><span>Sign out</span>
+  </button>
 </mat-menu>

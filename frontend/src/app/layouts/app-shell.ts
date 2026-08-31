@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthService } from '../core/auth.service';
@@ -12,6 +13,7 @@ import { AuthService } from '../core/auth.service';
     RouterLink,
     RouterLinkActive,
     MatButtonModule,
+    MatDividerModule,
     MatIconModule,
     MatMenuModule,
   ],

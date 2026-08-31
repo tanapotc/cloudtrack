@@ -67,10 +67,17 @@
                   <mat-icon>more_horiz</mat-icon>
                 </button>
               </footer>
-              <mat-menu #statusMenu="matMenu">
+              <mat-menu #statusMenu="matMenu" class="app-menu app-menu--status">
+                <div class="app-menu__label">Move task to</div>
                 @for (target of columns; track target.status) {
                   <button mat-menu-item (click)="moveTask(task, target.status)">
-                    {{ target.label }}
+                    <span
+                      class="menu-status-dot"
+                      [class.blue]="target.tone === 'blue'"
+                      [class.violet]="target.tone === 'violet'"
+                      [class.green]="target.tone === 'green'"
+                    ></span
+                    ><span>{{ target.label }}</span>
                   </button>
                 }
               </mat-menu>
