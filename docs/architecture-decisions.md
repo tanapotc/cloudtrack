@@ -62,3 +62,9 @@ This model shipped together with the switch to EF Core migrations (ADR-003), so 
 The Angular app talks to the API only through a generated client. `dotnet swagger tofile` writes the OpenAPI document to `frontend/openapi/cloudtrack.json`, and `ng-openapi-gen` turns it into typed services and models under `frontend/src/app/api/`. Both artefacts are committed and CI regenerates them to fail on drift.
 
 To keep the generated types clean, the API sets stable `"<Controller>_<Action>"` operation ids, a single `application/json` response content type, and a schema filter that marks every non-nullable property `required` (Swashbuckle infers nullability from C# but does not populate `required` for record members). `AuthService` and `ApiService` remain hand-written facades over the generated services: the components' surface stays small and the refresh-cookie / bearer-token wiring lives in one interceptor rather than in every call site. Enums stay numeric (`enumStyle: "alias"`) so existing status/priority handling is untouched.
+
+## ADR-010: Opt-in Azure Monitor telemetry
+
+`/health` and structured application logs are always available. The API also references `Azure.Monitor.OpenTelemetry.AspNetCore`, but registers its exporter only when `APPLICATIONINSIGHTS_CONNECTION_STRING` is supplied through protected configuration. This gives the portfolio a concrete observability path—request, dependency, exception, log, metric, and trace correlation—without embedding a connection string, creating a monitoring resource as a side effect of a code deploy, or charging the learning subscription before it is approved.
+
+When monitoring is approved, one Application Insights resource in the existing learning resource group and a conservative ingestion/retention guardrail are sufficient. A larger production workload would add explicit sampling, SLOs, alerts, an availability test, and a retention policy after measuring real traffic.

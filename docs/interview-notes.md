@@ -26,6 +26,10 @@ The deployed portfolio does not store a personal mailbox credential or third-par
 
 Serving Angular and the API from one App Service origin reduces CORS and deployment complexity. Free F1 avoids a container registry and is appropriate for an interview demo, but has no SLA, daily quotas, and possible cold starts. UI and API still scale together; separate services would be appropriate when their release cadence or traffic profiles diverge.
 
+### How would you investigate a slow or failing live API?
+
+The release gate begins with `GET /health`, including a real EF Core database check, and the API writes structured logs without recording credentials or request bodies. The API also has Azure Monitor OpenTelemetry instrumentation ready for request duration, dependency duration, exceptions, logs, and distributed traces. It activates only when the protected `APPLICATIONINSIGHTS_CONNECTION_STRING` App Service setting exists, so local development and the public demo do not silently create telemetry cost. Once the owner approves an Application Insights resource, I can use its failures, performance, and dependency views to correlate a slow endpoint with its SQL call rather than guessing from a browser error.
+
 ### What did E2E testing find?
 
 The desktop flow passed while the Pixel 7 flow could not reach Projects because the navigation link was off-canvas. The fix added an accessible label and made the test open the hamburger navigation as a real mobile user would. This is a useful example of tests detecting a product-level interaction problem rather than only checking rendered markup.
@@ -40,6 +44,7 @@ Tracked appsettings contain only safe defaults. Local secrets live in .NET user-
 - Azure-service SQL access reduces lab complexity; private networking is the production hardening path.
 - The portfolio demo exposes a one-time reset link; real-user production must use transactional email and disable token exposure.
 - The initial audit log supports investigation but should gain structured correlation IDs and retention policy.
+- OpenTelemetry export is code-ready, but the Azure Monitor resource and its cost guardrail remain owner-approved changes for the learning subscription.
 - The next performance step is a repeatable baseline covering API latency, database query count, bundle budgets, and cold-start behavior.
 
 ## Demo path
