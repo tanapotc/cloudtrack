@@ -98,7 +98,7 @@ Every page and layout keeps its logic, markup, and styles in co-located `*.ts` /
 
 ### Generated API client
 
-The frontend never hand-writes HTTP calls or response types. `dotnet swagger tofile` exports the OpenAPI document to [`frontend/openapi/cloudtrack.json`](frontend/openapi/cloudtrack.json) and `npm run api-generate` (`ng-openapi-gen`) turns it into typed services and models under `frontend/src/app/api/`. `AuthService` and `ApiService` are thin facades over those generated services, so feature components keep a small task-shaped surface. CI regenerates both artefacts and fails if either has drifted.
+The frontend never hand-writes HTTP calls or response types. `dotnet swagger tofile` exports the OpenAPI document to [`frontend/openapi/cloudtrack.json`](frontend/openapi/cloudtrack.json) and `npm run api-generate` (`ng-openapi-gen`) turns it into typed services and models under `frontend/src/app/api/`. Feature pages call typed resource boundaries such as `ProjectResourceService`, which implements the shared `CrudResource` contract (`select`, `selectById`, `add`, `edit`, `delete`) and keeps nested task route keys and request shapes out of UI components. `AuthService` and `ApiService` remain focused facades for authentication, dashboard, and administration. CI regenerates both artefacts and fails if either has drifted.
 
 ## Technology
 
