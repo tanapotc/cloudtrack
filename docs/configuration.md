@@ -43,8 +43,11 @@ Set these as App Service environment variables, not source files:
 | `ConnectionStrings:DefaultConnection` | `ConnectionStrings__DefaultConnection` | Yes |
 | `Cors:AllowedOrigins:0` | `Cors__AllowedOrigins__0` | No |
 | `Auth:ExposeDevelopmentResetToken` | `Auth__ExposeDevelopmentResetToken=true` for the public portfolio demo | No |
+| Azure Monitor connection string | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Yes |
 
 For a low-cost lab, sensitive values can start as secret application settings. Key Vault is a version-2 hardening step when its operational cost and complexity are justified.
+
+`APPLICATIONINSIGHTS_CONNECTION_STRING` is intentionally absent from the deployed app until monitoring is approved. When present, the API enables Azure Monitor OpenTelemetry automatically; it must only be set in a protected App Service setting, never in an Angular environment file or `appsettings*.json`.
 
 ## Password-reset delivery modes
 

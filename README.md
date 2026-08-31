@@ -28,7 +28,7 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 - Purpose-named SQL schemas (`mas`, `tra`, `sec`, `aud`) and audit columns (`CreatedBy`/`CreatedAt`/`UpdatedBy`/`UpdatedAt`/`IsActive`) on every table.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
 - Layered ASP.NET Core backend running SQL Server everywhere: LocalDB for development and tests, Azure SQL in production.
-- App Service ZIP delivery, GitHub Actions OIDC (when enabled), secret scanning, health probes, and Bicep infrastructure.
+- App Service ZIP delivery, GitHub Actions OIDC (when enabled), secret scanning, health probes, Bicep infrastructure, and opt-in Azure Monitor OpenTelemetry.
 
 ## Architecture
 
@@ -181,6 +181,7 @@ The learning environment uses the F1 App Service and Azure SQL free/serverless o
 - `appsettings.json` contains non-secret defaults and an empty signing key.
 - Local secrets belong in .NET user-secrets or an ignored `.env` file.
 - Azure secrets are protected App Service settings; they are never compiled into Angular or stored in GitHub.
+- Azure Monitor instrumentation activates only when the protected `APPLICATIONINSIGHTS_CONNECTION_STRING` setting exists.
 - Forgot-password responses do not reveal whether an email exists.
 - Demo reset links are single-use and expire after 30 minutes; production email delivery should set `Auth__ExposeDevelopmentResetToken=false`.
 - Changing a password revokes all refresh tokens.
@@ -213,6 +214,7 @@ docs/                             Architecture, operations, and interview notes
 - [Configuration and secret safety](docs/configuration.md)
 - [Architecture decisions](docs/architecture-decisions.md)
 - [Azure deployment runbook](docs/azure-deployment.md)
+- [Monitoring runbook](docs/monitoring.md)
 - [API surface](docs/api.md)
 - [Interview notes](docs/interview-notes.md)
 
@@ -221,6 +223,6 @@ docs/                             Architecture, operations, and interview notes
 - Replace the portfolio reset-link fallback with a transactional email provider such as [Resend Free](https://resend.com/pricing), then disable token exposure.
 - Move secrets to Key Vault if the operational trade-off is justified.
 - Add private networking for Azure SQL and restore testing for backups.
-- Add OpenTelemetry traces, explicit SLOs, and performance baselines.
+- Create an Application Insights resource after cost approval, then enable the ready OpenTelemetry export, explicit SLOs, and performance baselines.
 
 The Git history is intentionally split into small conventional commits so reviewers can follow the project from foundation to delivery.

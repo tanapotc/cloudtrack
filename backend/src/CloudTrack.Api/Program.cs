@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using CloudTrack.Api.Auth;
 using CloudTrack.Api.Errors;
 using CloudTrack.Api.Swagger;
@@ -57,6 +58,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
+
+// Azure Monitor stays opt-in so development and the public portfolio demo do not
+// emit telemetry until an owner supplies the protected App Service setting.
+if (!string.IsNullOrWhiteSpace(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+{
+    builder.Services.AddOpenTelemetry().UseAzureMonitor();
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
