@@ -66,26 +66,6 @@ h1 {
   color: #334155;
   font-size: 14px;
 }
-.task-form {
-  padding: 20px;
-  margin-bottom: 20px;
-  border: 1px solid #bfdbfe;
-  border-radius: 14px;
-  background: #f8fbff;
-}
-.task-form h2 {
-  margin: 0 0 15px;
-  font-size: 16px;
-}
-.task-form form {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr 150px auto;
-  gap: 10px;
-}
-.task-form form > div {
-  display: flex;
-  padding-top: 5px;
-}
 .board-head {
   margin: 28px 0 14px;
 }
@@ -152,13 +132,66 @@ h1 {
 .cards {
   display: grid;
   gap: 9px;
+  min-height: 140px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cards.cdk-drop-list-dragging {
+  padding: 5px;
+  margin: -5px;
+  border-radius: 10px;
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: inset 0 0 0 1px #93c5fd;
 }
 .cards article {
+  position: relative;
   padding: 14px;
   border: 1px solid #e3e7ee;
   border-radius: 11px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  cursor: grab;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cards article:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.09);
+}
+.cards article:active {
+  cursor: grabbing;
+}
+.drag-handle {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: #c0cada;
+  cursor: grab;
+}
+.drag-handle:hover {
+  color: #2563eb;
+  background: #eff6ff;
+}
+.drag-handle mat-icon {
+  width: 17px;
+  height: 17px;
+  font-size: 17px;
+}
+.cdk-drag-preview {
+  box-sizing: border-box;
+  width: 260px;
+  border-radius: 11px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
+}
+.cdk-drag-placeholder {
+  opacity: 0.35;
 }
 .priority {
   display: inline-block;
@@ -245,9 +278,6 @@ h1 {
   }
   .summary div:nth-child(-n + 2) {
     border-bottom: 1px solid #edf0f5;
-  }
-  .task-form form {
-    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 600px) {

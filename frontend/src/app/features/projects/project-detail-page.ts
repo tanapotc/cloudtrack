@@ -1,30 +1,30 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/api.service';
 import { ProjectDetails, WorkItemSummary } from '../../core/models';
+import { WorkItemStatus } from '../../api/models/work-item-status';
+import { TaskDialog, TaskDialogResult } from './task-dialog';
 
 @Component({
   selector: 'app-project-detail-page',
   imports: [
     DatePipe,
     RouterLink,
-    ReactiveFormsModule,
     MatButtonModule,
-    MatFormFieldModule,
     MatIconModule,
-    MatInputModule,
     MatProgressSpinnerModule,
-    MatSelectModule,
     MatMenuModule,
+    MatDialogModule,
+    CdkDropList,
+    CdkDropListGroup,
+    CdkDrag,
   ],
   templateUrl: './project-detail-page.html',
   styleUrl: './project-detail-page.scss',
@@ -32,22 +32,16 @@ import { ProjectDetails, WorkItemSummary } from '../../core/models';
 export class ProjectDetailPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
-  private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
   readonly project = signal<ProjectDetails | null>(null);
   readonly loading = signal(true);
-  readonly showTaskForm = signal(false);
-  readonly form = this.fb.nonNullable.group({
-    title: ['', [Validators.required, Validators.minLength(3)]],
-    description: [''],
-    priority: [1],
-  });
   readonly columns = [
     { status: 0, label: 'Backlog', tone: '' },
     { status: 1, label: 'In progress', tone: 'blue' },
     { status: 2, label: 'Review', tone: 'violet' },
     { status: 3, label: 'Done', tone: 'green' },
-  ];
+  ] satisfies ReadonlyArray<{ status: WorkItemStatus; label: string; tone: string }>;
   ngOnInit(): void {
     this.load();
   }
@@ -64,31 +58,42 @@ export class ProjectDetailPage implements OnInit {
       },
     });
   }
-  createTask(): void {
-    if (this.form.invalid) return;
-    const value = this.form.getRawValue();
-    this.api
-      .createTask(this.id, value.title, value.description, value.priority, null)
-      .subscribe(() => {
-        this.form.reset({ title: '', description: '', priority: 1 });
-        this.showTaskForm.set(false);
-        this.load();
-      });
+  openTaskDialog(): void {
+    const dialogRef = this.dialog.open<TaskDialog, undefined, TaskDialogResult>(TaskDialog, {
+      width: 'min(560px, calc(100vw - 32px))',
+      autoFocus: 'dialog',
+    });
+    dialogRef.afterClosed().subscribe((value) => {
+      if (!value) return;
+      this.api
+        .createTask(this.id, value.title, value.description, value.priority, value.dueDate)
+        .subscribe(() => this.load());
+    });
   }
-  tasksFor(status: number): WorkItemSummary[] {
+  tasksFor(status: WorkItemStatus): WorkItemSummary[] {
     return this.project()?.workItems.filter((task) => task.status === status) ?? [];
   }
-  moveTask(task: WorkItemSummary, status: number): void {
+  moveTask(task: WorkItemSummary, status: WorkItemStatus): void {
     if (task.status === status) return;
-    this.api.updateTask(this.id, task, status).subscribe((updated) =>
-      this.project.update((p) =>
-        p
-          ? {
-              ...p,
-              workItems: p.workItems.map((item) => (item.id === updated.id ? updated : item)),
-            }
-          : p,
-      ),
+    const previousStatus = task.status;
+    this.replaceTask({ ...task, status });
+    this.api.updateTask(this.id, task, status).subscribe({
+      next: (updated) => this.replaceTask(updated),
+      error: () => this.replaceTask({ ...task, status: previousStatus }),
+    });
+  }
+  dropTask(event: CdkDragDrop<WorkItemSummary[]>, status: WorkItemStatus): void {
+    const task = event.item.data as WorkItemSummary;
+    this.moveTask(task, status);
+  }
+  private replaceTask(task: WorkItemSummary): void {
+    this.project.update((project) =>
+      project
+        ? {
+            ...project,
+            workItems: project.workItems.map((item) => (item.id === task.id ? task : item)),
+          }
+        : project,
     );
   }
   statusLabel(status: number): string {

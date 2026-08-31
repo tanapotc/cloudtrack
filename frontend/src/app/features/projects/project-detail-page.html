@@ -8,9 +8,7 @@
       <h1>{{ item.name }}</h1>
       <p>{{ item.description }}</p>
     </div>
-    <button mat-flat-button (click)="showTaskForm.set(true)">
-      <mat-icon>add</mat-icon>Add task
-    </button>
+    <button mat-flat-button (click)="openTaskDialog()"><mat-icon>add</mat-icon>Add task</button>
   </div>
   <section class="summary">
     <div>
@@ -26,47 +24,30 @@
       <span>Version</span><strong>v{{ item.version }}</strong>
     </div>
   </section>
-  @if (showTaskForm()) {
-    <section class="task-form">
-      <h2>Add a task</h2>
-      <form [formGroup]="form" (ngSubmit)="createTask()">
-        <mat-form-field appearance="outline"
-          ><mat-label>Task title</mat-label
-          ><input matInput formControlName="title" /></mat-form-field
-        ><mat-form-field appearance="outline"
-          ><mat-label>Description</mat-label
-          ><input matInput formControlName="description" /></mat-form-field
-        ><mat-form-field appearance="outline"
-          ><mat-label>Priority</mat-label
-          ><mat-select formControlName="priority"
-            ><mat-option [value]="0">Low</mat-option><mat-option [value]="1">Medium</mat-option
-            ><mat-option [value]="2">High</mat-option
-            ><mat-option [value]="3">Critical</mat-option></mat-select
-          ></mat-form-field
-        >
-        <div>
-          <button mat-button type="button" (click)="showTaskForm.set(false)">Cancel</button
-          ><button mat-flat-button type="submit" [disabled]="form.invalid">Add task</button>
-        </div>
-      </form>
-    </section>
-  }
   <div class="board-head">
     <div>
       <h2>Task board</h2>
       <p>Move work through a clear delivery flow.</p>
     </div>
   </div>
-  <section class="board">
+  <section class="board" cdkDropListGroup>
     @for (column of columns; track column.status) {
       <div class="column">
         <header>
           <span><i [class]="column.tone"></i>{{ column.label }}</span
           ><b>{{ tasksFor(column.status).length }}</b>
         </header>
-        <div class="cards">
+        <div
+          class="cards"
+          cdkDropList
+          [cdkDropListData]="tasksFor(column.status)"
+          (cdkDropListDropped)="dropTask($event, column.status)"
+        >
           @for (task of tasksFor(column.status); track task.id) {
-            <article>
+            <article cdkDrag [cdkDragData]="task" [cdkDragDisabled]="false">
+              <div class="drag-handle" cdkDragHandle aria-label="Drag task">
+                <mat-icon>drag_indicator</mat-icon>
+              </div>
               <div class="priority" [class]="priorityClass(task.priority)">
                 {{ priorityLabel(task.priority) }}
               </div>

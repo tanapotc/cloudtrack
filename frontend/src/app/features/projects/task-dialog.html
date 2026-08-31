@@ -1,0 +1,48 @@
+<header mat-dialog-title>
+  <span class="dialog-icon"><mat-icon>add_task</mat-icon></span>
+  <span><small>PROJECT TASK</small><strong>Create a focused task</strong></span>
+</header>
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content>
+    <p class="intro">
+      Add the next piece of work, then drag it through the board as it progresses.
+    </p>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Task title</mat-label>
+      <input matInput formControlName="title" maxlength="160" />
+      <mat-hint>Use a clear, action-oriented title.</mat-hint>
+      @if (form.controls.title.hasError('required')) {
+        <mat-error>A title is required.</mat-error>
+      }
+      @if (form.controls.title.hasError('minlength')) {
+        <mat-error>Use at least 3 characters.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="4" maxlength="2000"></textarea>
+      <mat-hint align="end">{{ form.controls.description.value.length }}/2000</mat-hint>
+    </mat-form-field>
+    <div class="field-grid">
+      <mat-form-field appearance="outline">
+        <mat-label>Priority</mat-label>
+        <mat-select formControlName="priority">
+          <mat-option [value]="0">Low</mat-option>
+          <mat-option [value]="1">Medium</mat-option>
+          <mat-option [value]="2">High</mat-option>
+          <mat-option [value]="3">Critical</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Due date</mat-label>
+        <input matInput type="date" formControlName="dueDate" />
+      </mat-form-field>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" mat-dialog-close>Cancel</button>
+    <button mat-flat-button type="submit" [disabled]="form.invalid">
+      <mat-icon>add</mat-icon>Create task
+    </button>
+  </mat-dialog-actions>
+</form>
