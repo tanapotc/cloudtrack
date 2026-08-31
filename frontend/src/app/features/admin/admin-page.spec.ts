@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 import { ManagedUserSummary, PagedResult } from '../../core/models';
 import { AdminPage } from './admin-page';
 
@@ -26,6 +27,8 @@ describe('AdminPage user pagination', () => {
 
   beforeEach(async () => {
     api.users.mockReset();
+    api.roles.mockReset();
+    api.roles.mockReturnValue(of([]));
     api.users.mockReturnValue(
       of({ items: [], page: 1, pageSize: 30, totalCount: 0, totalPages: 0 }),
     );
@@ -33,6 +36,10 @@ describe('AdminPage user pagination', () => {
       imports: [AdminPage],
       providers: [
         { provide: ApiService, useValue: api },
+        {
+          provide: AuthService,
+          useValue: { currentUser: () => ({ permissions: ['users.manage', 'roles.manage'] }) },
+        },
         { provide: ActivatedRoute, useValue: { snapshot: { data: { mode: 'users' } } } },
       ],
     }).compileComponents();

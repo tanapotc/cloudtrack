@@ -2,7 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AdminApi } from '../api/services/admin-api';
 import { DashboardApi } from '../api/services/dashboard-api';
-import { DashboardSummary, ManagedUserSummary, PagedResult, RoleSummary } from './models';
+import {
+  DashboardSummary,
+  ManagedUserSummary,
+  PagedResult,
+  PermissionSummary,
+  RoleSummary,
+} from './models';
 
 /**
  * Thin facade over the generated OpenAPI services so feature components keep a small,
@@ -29,10 +35,28 @@ export class ApiService {
     return this.adminApi.adminRoles() as Observable<RoleSummary[]>;
   }
 
+  permissions(): Observable<PermissionSummary[]> {
+    return this.adminApi.adminPermissions() as Observable<PermissionSummary[]>;
+  }
+
+  updateUserRoles(userId: string, roles: string[]): Observable<ManagedUserSummary> {
+    return this.adminApi.adminUpdateRoles({
+      body: { roles },
+      userId,
+    }) as Observable<ManagedUserSummary>;
+  }
+
   updateUserStatus(userId: string, isActive: boolean): Observable<ManagedUserSummary> {
     return this.adminApi.adminUpdateStatus({
       userId,
       body: { isActive },
     }) as Observable<ManagedUserSummary>;
+  }
+
+  updateRolePermissions(roleId: string, permissions: string[]): Observable<RoleSummary> {
+    return this.adminApi.adminUpdateRolePermissions({
+      body: { permissions },
+      roleId,
+    }) as Observable<RoleSummary>;
   }
 }

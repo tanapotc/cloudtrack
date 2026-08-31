@@ -6,11 +6,14 @@
       {{
         mode === 'users'
           ? 'Review access, roles, and account status.'
-          : 'Understand how responsibilities are divided across CloudTrack.'
+          : 'Review and update the permissions assigned to each system role.'
       }}
     </p>
   </div>
 </div>
+@if (actionError()) {
+  <div class="action-error" role="alert"><mat-icon>error_outline</mat-icon>{{ actionError() }}</div>
+}
 @if (loading()) {
   <div class="state"><mat-spinner diameter="34" /></div>
 } @else if (forbidden()) {
@@ -45,16 +48,42 @@
           </p>
         </div>
         <div class="roles">
-          @for (role of user.roles; track role) {
-            <b>{{ role }}</b>
+          @if (canManageUsers()) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-select
+                #userRoleSelection
+                multiple
+                [value]="user.roles"
+                aria-label="Roles for {{ user.displayName }}"
+              >
+                @for (role of roleOptions(); track role.id) {
+                  <mat-option [value]="role.name">{{ role.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="savingUserId() === user.id"
+              (click)="updateRoles(user, userRoleSelection.value)"
+            >
+              {{ savingUserId() === user.id ? 'Saving…' : 'Save' }}
+            </button>
+          } @else {
+            @for (role of user.roles; track role) {
+              <b>{{ role }}</b>
+            }
           }
         </div>
         <span class="muted">{{
           user.lastLoginAt ? (user.lastLoginAt | date: 'MMM d, y') : 'Never'
         }}</span
-        ><mat-slide-toggle [checked]="user.isActive" (change)="toggle(user, $event.checked)">{{
-          user.isActive ? 'Active' : 'Inactive'
-        }}</mat-slide-toggle>
+        ><mat-slide-toggle
+          [checked]="user.isActive"
+          [disabled]="!canManageUsers()"
+          (change)="toggle(user, $event.checked)"
+          >{{ user.isActive ? 'Active' : 'Inactive' }}</mat-slide-toggle
+        >
       </article>
     }
   </section>
@@ -78,6 +107,31 @@
         </div>
         <h2>{{ role.name }}</h2>
         <p>{{ role.description }}</p>
+        <div class="permission-summary">
+          @for (permission of role.permissions; track permission) {
+            <span>{{ permission }}</span>
+          }
+        </div>
+        @if (canManageRoles()) {
+          <div class="permission-editor">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Permissions</mat-label>
+              <mat-select #permissionSelection multiple [value]="role.permissions">
+                @for (permission of permissions(); track permission.id) {
+                  <mat-option [value]="permission.name">{{ permission.name }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="savingRoleId() === role.id"
+              (click)="updatePermissions(role, permissionSelection.value)"
+            >
+              {{ savingRoleId() === role.id ? 'Saving…' : 'Save permissions' }}
+            </button>
+          </div>
+        }
         <footer>
           <span
             ><strong>{{ role.userCount }}</strong> assigned users</span

@@ -100,3 +100,36 @@ test('portfolio demo reset link completes password recovery', async ({ page }) =
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 });
+
+test('an administrator can assign user roles and access permission controls', async ({ page }) => {
+  const email = `admin-flow-${Date.now()}-${test.info().project.name}@example.test`;
+  await page.goto('/auth/register');
+  await page.getByLabel('Full name').fill('Role Assignment Test');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill('Portfolio!234');
+  await page.getByRole('textbox', { name: 'Confirm password' }).fill('Portfolio!234');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByText('Account created. Please sign in.')).toBeVisible();
+
+  await page.context().clearCookies();
+  await page.goto('/auth/login');
+  await page.getByLabel('Email').fill('admin@playwright.test');
+  await page.getByLabel('Password', { exact: true }).fill('PlaywrightAdmin!234');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.goto('/users');
+  await expect(page.getByRole('heading', { name: 'User management' })).toBeVisible();
+  const user = page.locator('.table article').filter({ hasText: email });
+  await expect(user).toBeVisible();
+  const roleSelect = user.getByRole('combobox', { name: 'Roles for Role Assignment Test' });
+  await roleSelect.click();
+  await page.getByRole('option', { name: 'Manager' }).click();
+  await page.keyboard.press('Escape');
+  await user.getByRole('button', { name: 'Save' }).click();
+  await expect(roleSelect).toContainText('Manager');
+
+  await page.goto('/roles');
+  await expect(page.getByRole('heading', { name: 'Role management' })).toBeVisible();
+  await expect(page.getByLabel('Permissions')).toHaveCount(3);
+});

@@ -7,6 +7,9 @@ const e2eSqlConnection =
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
+  // E2E projects share one disposable SQL Server database, including mutable role assignments.
+  // Keep browser projects serial so a database write in one viewport cannot delay another one.
+  workers: 1,
   retries: process.env['CI'] ? 2 : 0,
   reporter: process.env['CI'] ? 'github' : 'list',
   use: {
@@ -31,6 +34,8 @@ export default defineConfig({
         Jwt__SigningKey: 'playwright-only-signing-key-with-32-characters',
         ASPNETCORE_ENVIRONMENT: 'Development',
         RateLimiting__AuthPermitLimit: '100',
+        Seed__AdminEmail: 'admin@playwright.test',
+        Seed__AdminPassword: 'PlaywrightAdmin!234',
         ConnectionStrings__DefaultConnection: e2eSqlConnection,
       },
     },

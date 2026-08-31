@@ -9,6 +9,7 @@ export type { DashboardSummary } from '../api/models/dashboard-summary';
 export type { ActivitySummary } from '../api/models/activity-summary';
 export type { ManagedUserSummary } from '../api/models/managed-user-summary';
 export type { RoleSummary } from '../api/models/role-summary';
+export type { PermissionSummary } from '../api/models/permission-summary';
 
 export interface PagedResult<T> {
   items: T[];
