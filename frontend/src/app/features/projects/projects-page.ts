@@ -9,7 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { ApiService } from '../../core/api.service';
+import { ProjectResourceService } from '../../core/project-resource.service';
+import { ProjectStatus } from '../../api/models/project-status';
 import { ProjectSummary } from '../../core/models';
 
 @Component({
@@ -29,7 +30,7 @@ import { ProjectSummary } from '../../core/models';
   styleUrl: './projects-page.scss',
 })
 export class ProjectsPage implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly projectsResource = inject(ProjectResourceService);
   private readonly fb = inject(FormBuilder);
   readonly projects = signal<ProjectSummary[]>([]);
   readonly loading = signal(true);
@@ -51,22 +52,30 @@ export class ProjectsPage implements OnInit {
   }
   load(): void {
     this.loading.set(true);
-    this.api.projects(this.searchControl.value, this.statusControl.value).subscribe({
-      next: (r) => {
-        this.projects.set(r.items);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Check your API connection and try again.');
-        this.loading.set(false);
-      },
-    });
+    this.projectsResource
+      .select({
+        search: this.searchControl.value,
+        status:
+          this.statusControl.value === ''
+            ? undefined
+            : (Number(this.statusControl.value) as ProjectStatus),
+      })
+      .subscribe({
+        next: (r) => {
+          this.projects.set(r.items);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Check your API connection and try again.');
+          this.loading.set(false);
+        },
+      });
   }
   createProject(): void {
     if (this.createForm.invalid) return;
     this.saving.set(true);
     const value = this.createForm.getRawValue();
-    this.api.createProject(value.name, value.description).subscribe({
+    this.projectsResource.add(value).subscribe({
       next: () => {
         this.createForm.reset();
         this.showCreate.set(false);

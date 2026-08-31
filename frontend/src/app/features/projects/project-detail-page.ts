@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { CdkDrag, CdkDropList, CdkDropListGroup, CdkDragDrop } from '@angular/cdk/drag-drop';
-import { ApiService } from '../../core/api.service';
+import { ProjectResourceService } from '../../core/project-resource.service';
 import { ProjectDetails, WorkItemSummary } from '../../core/models';
 import { WorkItemStatus } from '../../api/models/work-item-status';
 import { TaskDialog, TaskDialogResult } from './task-dialog';
@@ -31,7 +31,7 @@ import { WorkspacePreferencesService } from '../../core/workspace-preferences.se
   styleUrl: './project-detail-page.scss',
 })
 export class ProjectDetailPage implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly projectsResource = inject(ProjectResourceService);
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   readonly workspacePreferences = inject(WorkspacePreferencesService);
@@ -49,7 +49,7 @@ export class ProjectDetailPage implements OnInit {
   }
   load(): void {
     this.loading.set(true);
-    this.api.project(this.id).subscribe({
+    this.projectsResource.selectById(this.id).subscribe({
       next: (p) => {
         this.project.set(p);
         this.loading.set(false);
@@ -67,9 +67,7 @@ export class ProjectDetailPage implements OnInit {
     });
     dialogRef.afterClosed().subscribe((value) => {
       if (!value) return;
-      this.api
-        .createTask(this.id, value.title, value.description, value.priority, value.dueDate)
-        .subscribe(() => this.load());
+      this.projectsResource.addTask(this.id, value).subscribe(() => this.load());
     });
   }
   tasksFor(status: WorkItemStatus): WorkItemSummary[] {
@@ -79,10 +77,20 @@ export class ProjectDetailPage implements OnInit {
     if (task.status === status) return;
     const previousStatus = task.status;
     this.replaceTask({ ...task, status });
-    this.api.updateTask(this.id, task, status).subscribe({
-      next: (updated) => this.replaceTask(updated),
-      error: () => this.replaceTask({ ...task, status: previousStatus }),
-    });
+    this.projectsResource
+      .editTask(this.id, task.id, {
+        title: task.title,
+        description: task.description,
+        status,
+        priority: task.priority,
+        dueDate: task.dueDate,
+        assigneeId: task.assigneeId,
+        version: task.version,
+      })
+      .subscribe({
+        next: (updated) => this.replaceTask(updated),
+        error: () => this.replaceTask({ ...task, status: previousStatus }),
+      });
   }
   dropTask(event: CdkDragDrop<WorkItemSummary[]>, status: WorkItemStatus): void {
     const task = event.item.data as WorkItemSummary;

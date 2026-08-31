@@ -6,12 +6,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { WorkItemPriority } from '../../api/models/work-item-priority';
 import { WorkspacePreferencesService } from '../../core/workspace-preferences.service';
 
 export interface TaskDialogResult {
   title: string;
   description: string;
-  priority: number;
+  priority: WorkItemPriority;
   dueDate: string | null;
 }
 

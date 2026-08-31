@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
-import { ApiService } from '../../core/api.service';
+import { ProjectResourceService } from '../../core/project-resource.service';
 import { ProjectDetails, WorkItemSummary } from '../../core/models';
 import { ProjectDetailPage } from './project-detail-page';
 
@@ -34,18 +34,18 @@ const project = (workItems: WorkItemSummary[]): ProjectDetails => ({
 
 describe('ProjectDetailPage', () => {
   let component: ProjectDetailPage;
-  const api = {
-    project: vi.fn(() => of(project([]))),
-    updateTask: vi.fn(),
+  const projectsResource = {
+    selectById: vi.fn(() => of(project([]))),
+    editTask: vi.fn(),
   };
 
   beforeEach(async () => {
-    api.project.mockReturnValue(of(project([])));
-    api.updateTask.mockReset();
+    projectsResource.selectById.mockReturnValue(of(project([])));
+    projectsResource.editTask.mockReset();
     await TestBed.configureTestingModule({
       imports: [ProjectDetailPage, NoopAnimationsModule],
       providers: [
-        { provide: ApiService, useValue: api },
+        { provide: ProjectResourceService, useValue: projectsResource },
         { provide: MatDialog, useValue: { open: vi.fn() } },
         {
           provide: ActivatedRoute,
@@ -66,18 +66,26 @@ describe('ProjectDetailPage', () => {
   it('updates the card status after a successful drop', () => {
     const workItem = task('work-item', 0);
     component.project.set(project([workItem]));
-    api.updateTask.mockReturnValue(of({ ...workItem, status: 2 }));
+    projectsResource.editTask.mockReturnValue(of({ ...workItem, status: 2 }));
 
     component.dropTask({ item: { data: workItem } } as CdkDragDrop<WorkItemSummary[]>, 2);
 
-    expect(api.updateTask).toHaveBeenCalledWith('project-1', workItem, 2);
+    expect(projectsResource.editTask).toHaveBeenCalledWith('project-1', 'work-item', {
+      title: workItem.title,
+      description: workItem.description,
+      status: 2,
+      priority: workItem.priority,
+      dueDate: workItem.dueDate,
+      assigneeId: workItem.assigneeId,
+      version: workItem.version,
+    });
     expect(component.tasksFor(2)).toEqual([{ ...workItem, status: 2 }]);
   });
 
   it('restores the card to its previous column when the status update fails', () => {
     const workItem = task('work-item', 1);
     component.project.set(project([workItem]));
-    api.updateTask.mockReturnValue(throwError(() => new Error('Network failed')));
+    projectsResource.editTask.mockReturnValue(throwError(() => new Error('Network failed')));
 
     component.moveTask(workItem, 3);
 
