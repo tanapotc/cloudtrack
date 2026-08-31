@@ -15,12 +15,18 @@ public sealed class DatabaseInitializer(AppDbContext dbContext, IPasswordHasher<
 
         var adminEmail = configuration["Seed:AdminEmail"]?.Trim();
         var adminPassword = configuration["Seed:AdminPassword"];
-        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword) || await dbContext.Users.AnyAsync(cancellationToken))
+        if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
         {
             return;
         }
 
-        var admin = new AppUser { Email = adminEmail, NormalizedEmail = adminEmail.ToUpperInvariant(), DisplayName = "CloudTrack Admin", PasswordHash = string.Empty };
+        var normalizedAdminEmail = adminEmail.ToUpperInvariant();
+        if (await dbContext.Users.AnyAsync(x => x.NormalizedEmail == normalizedAdminEmail, cancellationToken))
+        {
+            return;
+        }
+
+        var admin = new AppUser { Email = adminEmail, NormalizedEmail = normalizedAdminEmail, DisplayName = "CloudTrack Admin", PasswordHash = string.Empty };
         admin.PasswordHash = passwordHasher.HashPassword(admin, adminPassword);
         var adminRole = await dbContext.Roles.SingleAsync(x => x.Name == "Admin", cancellationToken);
         admin.UserRoles.Add(new UserRole { User = admin, Role = adminRole });
