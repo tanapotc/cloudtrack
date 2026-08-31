@@ -65,9 +65,14 @@ Azure SQL is the production database. Development uses SQL Server LocalDB, while
 ```mermaid
 erDiagram
   USER ||--o{ REFRESH_TOKEN : owns
+  USER ||--o{ PASSWORD_RESET_TOKEN : requests
   USER ||--o{ PROJECT : creates
+  USER ||--o{ PROJECT_MEMBER : joins
+  PROJECT ||--o{ PROJECT_MEMBER : includes
   PROJECT ||--o{ WORK_ITEM : contains
   USER ||--o{ WORK_ITEM : is_assigned
+  WORK_ITEM ||--o{ WORK_ITEM_COMMENT : has
+  USER ||--o{ WORK_ITEM_COMMENT : writes
   USER }o--o{ ROLE : has
   WORK_ITEM ||--o{ AUDIT_ENTRY : records
 ```
@@ -213,6 +218,7 @@ docs/                             Architecture, operations, and interview notes
 
 - [Configuration and secret safety](docs/configuration.md)
 - [Architecture decisions](docs/architecture-decisions.md)
+- [Entity relationships and EF Core include paths](docs/relationships.md)
 - [Azure deployment runbook](docs/azure-deployment.md)
 - [Monitoring runbook](docs/monitoring.md)
 - [API surface](docs/api.md)

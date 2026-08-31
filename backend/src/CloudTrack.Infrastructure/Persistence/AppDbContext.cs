@@ -69,16 +69,25 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, ICurren
         modelBuilder.Entity<RolePermissionGrant>().HasOne(x => x.Role).WithMany(x => x.RolePermissions).HasForeignKey(x => x.RoleId);
         modelBuilder.Entity<RolePermissionGrant>().HasOne(x => x.Permission).WithMany(x => x.RolePermissions).HasForeignKey(x => x.PermissionId);
 
+        modelBuilder.Entity<RefreshToken>().HasOne(x => x.User).WithMany(x => x.RefreshTokens).HasForeignKey(x => x.UserId);
         modelBuilder.Entity<RefreshToken>().HasIndex(x => x.TokenHash).IsUnique();
+        modelBuilder.Entity<PasswordResetToken>().HasOne(x => x.User).WithMany(x => x.PasswordResetTokens).HasForeignKey(x => x.UserId);
         modelBuilder.Entity<PasswordResetToken>().HasIndex(x => x.TokenHash).IsUnique();
+
+        modelBuilder.Entity<Project>().HasOne(x => x.Owner).WithMany(x => x.OwnedProjects).HasForeignKey(x => x.OwnerId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Project>().Property(x => x.Version).IsConcurrencyToken();
         modelBuilder.Entity<Project>().HasIndex(x => new { x.OwnerId, x.Status });
         modelBuilder.Entity<ProjectMember>().HasKey(x => new { x.ProjectId, x.UserId });
-        modelBuilder.Entity<ProjectMember>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<ProjectMember>().HasOne(x => x.User).WithMany(x => x.ProjectMemberships).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<WorkItem>().HasOne(x => x.Project).WithMany(x => x.WorkItems).HasForeignKey(x => x.ProjectId);
+        modelBuilder.Entity<WorkItem>().HasOne(x => x.Assignee).WithMany(x => x.AssignedWorkItems).HasForeignKey(x => x.AssigneeId).OnDelete(DeleteBehavior.SetNull);
         modelBuilder.Entity<WorkItem>().Property(x => x.Version).IsConcurrencyToken();
         modelBuilder.Entity<WorkItem>().HasIndex(x => new { x.ProjectId, x.Status, x.Priority });
+
+        modelBuilder.Entity<WorkItemComment>().HasOne(x => x.WorkItem).WithMany(x => x.Comments).HasForeignKey(x => x.WorkItemId);
         modelBuilder.Entity<WorkItemComment>().HasIndex(x => new { x.WorkItemId, x.CreatedAt });
-        modelBuilder.Entity<WorkItemComment>().HasOne(x => x.Author).WithMany().HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<WorkItemComment>().HasOne(x => x.Author).WithMany(x => x.WrittenComments).HasForeignKey(x => x.AuthorId).OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<AuditLog>().HasIndex(x => new { x.EntityType, x.EntityId, x.CreatedAt });
 
         var dateTimeOffsetConverter = new ValueConverter<DateTimeOffset, DateTime>(

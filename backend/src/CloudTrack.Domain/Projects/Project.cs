@@ -13,6 +13,7 @@ public sealed class Project : Entity
     public string Description { get; set; } = string.Empty;
     public ProjectStatus Status { get; set; } = ProjectStatus.Planning;
     public Guid OwnerId { get; set; }
+    public AppUser Owner { get; set; } = null!;
     public int Version { get; set; } = 1;
     public ICollection<ProjectMember> Members { get; set; } = [];
     public ICollection<WorkItem> WorkItems { get; set; } = [];
@@ -37,6 +38,7 @@ public sealed class WorkItem : Entity
     public WorkItemPriority Priority { get; set; } = WorkItemPriority.Medium;
     public DateTimeOffset? DueDate { get; set; }
     public Guid? AssigneeId { get; set; }
+    public AppUser? Assignee { get; set; }
     public int Version { get; set; } = 1;
     public ICollection<WorkItemComment> Comments { get; set; } = [];
 }
