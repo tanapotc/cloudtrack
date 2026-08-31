@@ -107,16 +107,16 @@ The frontend never hand-writes HTTP calls or response types. `dotnet swagger tof
 
 ## Technology
 
-| Area | Choice |
-| --- | --- |
-| Web | Angular 22, standalone components, Angular Material, signals |
-| API client | OpenAPI spec exported from Swashbuckle, TypeScript client generated with ng-openapi-gen |
-| API | ASP.NET Core 8, controllers, Problem Details, rate limiting |
-| Data | EF Core 8 with migrations, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
-| Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
-| Quality | xUnit, ASP.NET integration tests, Vitest, Playwright, Prettier |
-| Delivery | App Service ZIP, GitHub Actions OIDC when enabled, Gitleaks, Azure Bicep |
-| Azure | Linux App Service Free F1, Azure SQL Database Free/Serverless |
+| Area       | Choice                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| Web        | Angular 22, standalone components, Angular Material, signals                                       |
+| API client | OpenAPI spec exported from Swashbuckle, TypeScript client generated with ng-openapi-gen            |
+| API        | ASP.NET Core 8, controllers, Problem Details, rate limiting                                        |
+| Data       | EF Core 8 with migrations, SQL Server (LocalDB for dev and tests, Azure SQL in production)         |
+| Security   | JWT bearer auth, password hashing, refresh-token rotation, RBAC                                    |
+| Quality    | xUnit, ASP.NET integration tests, Vitest, Playwright, Prettier                                     |
+| Delivery   | App Service ZIP, GitHub Actions OIDC when enabled, Azure Pipelines fallback, Gitleaks, Azure Bicep |
+| Azure      | Linux App Service Free F1, Azure SQL Database Free/Serverless                                      |
 
 ## Run locally
 
@@ -220,6 +220,7 @@ docs/                             Architecture, operations, and interview notes
 - [Architecture decisions](docs/architecture-decisions.md)
 - [Entity relationships and EF Core include paths](docs/relationships.md)
 - [Azure deployment runbook](docs/azure-deployment.md)
+- [Azure DevOps pipeline fallback](docs/azure-devops-pipeline.md)
 - [Monitoring runbook](docs/monitoring.md)
 - [API surface](docs/api.md)
 - [Interview notes](docs/interview-notes.md)
