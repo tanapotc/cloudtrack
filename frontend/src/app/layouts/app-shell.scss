@@ -81,7 +81,7 @@ nav mat-icon {
 .learning-card {
   display: grid;
   gap: 7px;
-  margin: auto 4px 14px;
+  margin: auto 4px 0;
   padding: 15px;
   border-radius: 12px;
   background: #14264b;
@@ -96,33 +96,6 @@ nav mat-icon {
   color: #fff;
   font-size: 13px;
 }
-.account {
-  display: grid;
-  grid-template-columns: 38px 1fr 20px;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-  padding: 10px 8px;
-  border: 0;
-  border-top: 1px solid #20345b;
-  background: transparent;
-  color: #fff;
-  text-align: left;
-  cursor: pointer;
-}
-.account strong,
-.account small {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.account small {
-  margin-top: 2px;
-  color: #7f94b7;
-  font-size: 11px;
-}
-.avatar,
 .mini-avatar {
   display: grid;
   place-items: center;
@@ -131,10 +104,6 @@ nav mat-icon {
   color: #fff;
   font-size: 12px;
   font-weight: 800;
-}
-.avatar {
-  width: 38px;
-  height: 38px;
 }
 .content-area {
   min-width: 0;
@@ -183,6 +152,32 @@ header {
   gap: 5px;
   color: #64748b;
 }
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 7px;
+  padding: 2px;
+  border: 0;
+  border-radius: 9px;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+.account-trigger:hover,
+.account-trigger:focus-visible {
+  color: #1d4ed8;
+  background: #eff6ff;
+  outline: none;
+}
+.account-trigger mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
 .header-actions button {
   position: relative;
 }
@@ -199,7 +194,6 @@ header {
 .mini-avatar {
   width: 34px;
   height: 34px;
-  margin-left: 8px;
 }
 .menu-button {
   display: none;

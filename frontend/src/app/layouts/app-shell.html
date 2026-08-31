@@ -24,20 +24,6 @@
       <mat-icon>auto_awesome</mat-icon><strong>Portfolio lab</strong
       ><span>Built to learn Azure with production-minded choices.</span>
     </div>
-    <button class="account" [matMenuTriggerFor]="accountMenu">
-      <span class="avatar">{{ initials() }}</span
-      ><span
-        ><strong>{{ auth.currentUser()?.displayName }}</strong
-        ><small>{{ auth.currentUser()?.roles?.[0] }}</small></span
-      ><mat-icon>unfold_more</mat-icon>
-    </button>
-    <mat-menu #accountMenu="matMenu"
-      ><button mat-menu-item routerLink="/profile"><mat-icon>person</mat-icon>Profile</button
-      ><button mat-menu-item routerLink="/settings"><mat-icon>settings</mat-icon>Settings</button
-      ><button mat-menu-item (click)="auth.logout()">
-        <mat-icon>logout</mat-icon>Sign out
-      </button></mat-menu
-    >
   </aside>
   <button class="scrim" aria-label="Close navigation" (click)="navOpen.set(false)"></button>
   <section class="content-area">
@@ -58,9 +44,22 @@
         <button mat-icon-button aria-label="Help"><mat-icon>help_outline</mat-icon></button
         ><button mat-icon-button aria-label="Notifications">
           <mat-icon>notifications_none</mat-icon><i></i></button
-        ><span class="mini-avatar">{{ initials() }}</span>
+        ><button
+          class="account-trigger"
+          [matMenuTriggerFor]="accountMenu"
+          aria-label="Open account menu"
+          aria-haspopup="menu"
+        >
+          <span class="mini-avatar">{{ initials() }}</span
+          ><mat-icon>keyboard_arrow_down</mat-icon>
+        </button>
       </div>
     </header>
     <main><router-outlet /></main>
   </section>
 </div>
+<mat-menu #accountMenu="matMenu" xPosition="before">
+  <button mat-menu-item routerLink="/profile"><mat-icon>person</mat-icon>Profile</button>
+  <button mat-menu-item routerLink="/settings"><mat-icon>settings</mat-icon>Settings</button>
+  <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon>Sign out</button>
+</mat-menu>
