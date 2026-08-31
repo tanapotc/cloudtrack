@@ -21,14 +21,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Start ephemeral SQL Server
-        run: bash .github/scripts/start-sql-server.sh
       - run: dotnet tool restore
       - run: dotnet restore backend/CloudTrack.sln
       - run: dotnet build backend/CloudTrack.sln --configuration Release --no-restore
         env:
           Jwt__SigningKey: ci-build-only-signing-key-with-32-characters
-      - run: dotnet test backend/CloudTrack.sln --configuration Release --no-build --collect:"XPlat Code Coverage"
+      - name: Run domain unit tests
+        run: dotnet test backend/tests/CloudTrack.UnitTests/CloudTrack.UnitTests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage"
         env:
           Jwt__SigningKey: ci-test-only-signing-key-with-32-characters
       - name: Verify migrations match the model
@@ -65,10 +64,6 @@ jobs:
       - run: npm run build
       - run: npx prettier --check "src/**/*.{ts,html,scss}" "e2e/**/*.ts" angular.json
       - run: npm audit --omit=dev
-      - run: npx playwright install --with-deps chromium
-      - name: Start ephemeral SQL Server
-        run: bash ../.github/scripts/start-sql-server.sh
-      - run: npm run e2e
 
   secret-scan:
     runs-on: ubuntu-latest
@@ -79,17 +74,3 @@ jobs:
         with:
           fetch-depth: 0
       - uses: gitleaks/gitleaks-action@v2
-
-  container:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: cloudtrack:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

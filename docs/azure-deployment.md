@@ -1,6 +1,6 @@
 # Azure deployment runbook
 
-This learning deployment uses the existing resource group `learning_stack`. It runs the ASP.NET Core API and compiled Angular application together on Linux Azure App Service, so Azure deployment does not require Docker or a container registry.
+This learning deployment uses the existing resource group `learning_stack`. It runs the ASP.NET Core API and compiled Angular application together on Linux Azure App Service and deploys a ZIP package directly.
 
 ## Cost-conscious resources
 
@@ -49,7 +49,7 @@ Keep `infra/local.parameters.json` ignored and delete it after the owner-control
 
 ## GitHub OIDC delivery
 
-`.github/workflows/deploy-azure.yml` builds Angular, publishes ASP.NET Core with the frontend included, creates a ZIP package, and deploys it to the existing App Service. GitHub authenticates with an Azure federated identity; there is no client secret, Docker build, ACR, or registry credential.
+`.github/workflows/deploy-azure.yml` builds Angular, publishes ASP.NET Core with the frontend included, creates a ZIP package, and deploys it to the existing App Service. GitHub authenticates with an Azure federated identity; there is no client secret or registry credential.
 
 Repository/environment variables:
 
@@ -101,7 +101,7 @@ Or re-run the Bicep template, which provisions the database with the same settin
 - Keep the SQL free-limit behavior set to `AutoPause`.
 - Free F1 has no SLA; a sleeping or quota-exhausted demo is expected to be unavailable temporarily.
 - Check exact resource IDs before removing resources.
-- Container Apps, its managed environment, ACR, and container-only identities can be removed after the App Service deployment is verified.
+- Any legacy Container Apps, managed environments, ACR instances, and container-only identities can be removed after the App Service deployment is verified.
 
 ## Version-two hardening
 

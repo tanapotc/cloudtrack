@@ -31,7 +31,7 @@ dotnet user-secrets set "Jwt:SigningKey" "<generate-at-least-32-random-character
 dotnet run --urls http://localhost:5080
 ```
 
-The default local connection string targets SQL Server LocalDB (`Server=(localdb)\MSSQLLocalDB;Initial Catalog=CloudTrack.Dev;Integrated Security=True`). It uses Windows integrated security, so it holds no credential. Point `ConnectionStrings__DefaultConnection` at a container or another instance to override it. The API applies pending EF Core migrations and seeds baseline data on start-up; run `dotnet tool restore` once so the `dotnet ef` tool is available for adding migrations.
+The default local connection string targets SQL Server LocalDB (`Server=(localdb)\MSSQLLocalDB;Initial Catalog=CloudTrack.Dev;Integrated Security=True`). It uses Windows integrated security, so it holds no credential. Point `ConnectionStrings__DefaultConnection` at another SQL Server instance to override it. The API applies pending EF Core migrations and seeds baseline data on start-up; run `dotnet tool restore` once so the `dotnet ef` tool is available for adding migrations.
 
 ## Azure mapping
 

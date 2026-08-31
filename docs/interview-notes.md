@@ -8,7 +8,7 @@ CloudTrack is a project-management workspace I built to demonstrate an end-to-en
 
 ### Why standardize on SQL Server everywhere?
 
-An earlier version used SQLite for local and test runs to avoid a database prerequisite. The problem: integration tests passed against an engine production never uses, so provider-specific behavior around execution strategies, retries, and transactions went untested. Now every environment uses SQL Server — LocalDB for development, an ephemeral SQL Server 2022 container in CI, and Azure SQL serverless in production. Tests create and drop a database per run, so they stay isolated without a second provider.
+An earlier version used SQLite for local and test runs to avoid a database prerequisite. The problem: integration tests passed against an engine production never uses, so provider-specific behavior around execution strategies, retries, and transactions went untested. Now every environment uses SQL Server — LocalDB for development and Azure SQL serverless in production. Tests create and drop a database per run, so they stay isolated without a second provider.
 
 ### Why split schemas and add audit columns?
 

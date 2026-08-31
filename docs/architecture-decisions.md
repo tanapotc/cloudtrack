@@ -10,7 +10,7 @@ The solution separates Domain, Application, Infrastructure, and API projects. Th
 
 ## ADR-003: Database strategy
 
-CloudTrack runs on SQL Server in every environment: LocalDB for development, an ephemeral SQL Server 2022 container for CI, and Azure SQL serverless in production. An earlier iteration used SQLite for local and test runs, but keeping two providers meant integration tests never exercised the engine that production uses, hiding provider-specific behavior around transactions, retries, and concurrency. Integration and E2E suites now create a disposable database per run and drop it on teardown.
+CloudTrack runs on SQL Server in every environment: LocalDB for development and Azure SQL serverless in production. An earlier iteration used SQLite for local and test runs, but keeping two providers meant integration tests never exercised the engine that production uses, hiding provider-specific behavior around transactions, retries, and concurrency. Integration and E2E suites create a disposable database per run and drop it on teardown.
 
 Schema changes are versioned with EF Core migrations (`backend/src/CloudTrack.Infrastructure/Persistence/Migrations`). `DatabaseInitializer` calls `Database.Migrate()` on startup, so a deploy applies any pending migration before serving traffic and a failed migration stops the rollout. On Free F1 there is a single instance, so start-up migration is safe; a multi-instance production tier would move migration into a dedicated release step. `dotnet ef` is pinned as a local tool (`dotnet tool restore`), and CI fails if the model has drifted from the latest migration.
 
@@ -22,7 +22,7 @@ The SPA keeps its access token in memory. A page refresh uses the refresh cookie
 
 ## ADR-005: One App Service origin
 
-The delivery workflow builds Angular and copies its browser bundle into ASP.NET Core `wwwroot`. Linux Azure App Service exposes one HTTPS origin for both UI and `/api`. This reduces CORS complexity, avoids a second service, and deploys as a ZIP without requiring Docker or a registry.
+The delivery workflow builds Angular and copies its browser bundle into ASP.NET Core `wwwroot`. Linux Azure App Service exposes one HTTPS origin for both UI and `/api`. This reduces CORS complexity, avoids a second service, and deploys as a ZIP without requiring a registry.
 
 ## ADR-006: Azure target and naming
 

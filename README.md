@@ -15,7 +15,7 @@ Live authentication routes:
 
 > Password recovery currently runs in clearly labelled portfolio demo mode. The API creates a 30-minute, single-use reset token and the UI exposes only a continue link because no email account or API key is stored in the demo. Responses include a non-persisted decoy token for unknown addresses so the response shape does not reveal whether an account exists. Replace this fallback with transactional email before using CloudTrack for real user data.
 
-Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the same Linux App Service as the API. No Static Web App, Docker runtime, or container registry is required for the Azure deployment.
+Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the same Linux App Service as the API. No Static Web App or separate runtime is required for the Azure deployment.
 
 ![CloudTrack login on desktop](docs/screenshots/login-desktop.png)
 
@@ -28,11 +28,11 @@ Angular is compiled into the ASP.NET Core `wwwroot` folder and served by the sam
 - Purpose-named SQL schemas (`mas`, `tra`, `sec`, `aud`) and audit columns (`CreatedBy`/`CreatedAt`/`UpdatedBy`/`UpdatedAt`/`IsActive`) on every table.
 - Responsive Angular Material UI verified against desktop Chromium and a Pixel 7 viewport.
 - Layered ASP.NET Core backend running SQL Server everywhere: LocalDB for development and tests, Azure SQL in production.
-- App Service ZIP delivery without Docker, GitHub Actions OIDC, secret scanning, health probes, and Bicep infrastructure.
+- App Service ZIP delivery, GitHub Actions OIDC (when enabled), secret scanning, health probes, and Bicep infrastructure.
 
 ## Architecture
 
-One Azure App Service hosts the ASP.NET Core API and serves the compiled Angular bundle from the same origin. A single origin removes the need for a separate Static Web App, a container runtime, and production CORS.
+One Azure App Service hosts the ASP.NET Core API and serves the compiled Angular bundle from the same origin. A single origin removes the need for a separate Static Web App, another runtime, and production CORS.
 
 ```mermaid
 flowchart LR
@@ -58,7 +58,19 @@ flowchart LR
   Infrastructure --> Domain
 ```
 
-Azure SQL is the only database engine in every environment. Development and CI use SQL Server LocalDB or an ephemeral SQL Server 2022 container and rebuild a throwaway database per run. The App Service and database are provisioned by [Bicep](infra/main.bicep) and the app is delivered as a ZIP package.
+Azure SQL is the production database. Development uses SQL Server LocalDB, while integration and browser tests can target an isolated SQL Server database through environment variables. The App Service and database are provisioned by [Bicep](infra/main.bicep) and the app is delivered as a ZIP package.
+
+### Data model
+
+```mermaid
+erDiagram
+  USER ||--o{ REFRESH_TOKEN : owns
+  USER ||--o{ PROJECT : creates
+  PROJECT ||--o{ WORK_ITEM : contains
+  USER ||--o{ WORK_ITEM : is_assigned
+  USER }o--o{ ROLE : has
+  WORK_ITEM ||--o{ AUDIT_ENTRY : records
+```
 
 ### Authentication flow
 
@@ -98,12 +110,12 @@ The frontend never hand-writes HTTP calls or response types. `dotnet swagger tof
 | Data | EF Core 8 with migrations, SQL Server (LocalDB for dev and tests, Azure SQL in production) |
 | Security | JWT bearer auth, password hashing, refresh-token rotation, RBAC |
 | Quality | xUnit, ASP.NET integration tests, Vitest, Playwright, Prettier |
-| Delivery | App Service ZIP, GitHub Actions OIDC, Gitleaks, Azure Bicep; optional Docker |
+| Delivery | App Service ZIP, GitHub Actions OIDC when enabled, Gitleaks, Azure Bicep |
 | Azure | Linux App Service Free F1, Azure SQL Database Free/Serverless |
 
 ## Run locally
 
-Prerequisites: .NET SDK 8, Node.js 24, npm, and SQL Server. The default connection string targets SQL Server LocalDB (installed with the .NET SDK "Data storage and processing" workload or Visual Studio); to use a container or another instance instead, override `ConnectionStrings__DefaultConnection`. Docker is optional and can also supply SQL Server through Docker Compose.
+Prerequisites: .NET SDK 8, Node.js 24, npm, and SQL Server. The default connection string targets SQL Server LocalDB (installed with the .NET SDK "Data storage and processing" workload or Visual Studio). To use another SQL Server instance, override `ConnectionStrings__DefaultConnection`.
 
 ### 1. Configure the API safely
 
@@ -134,16 +146,6 @@ npm start
 
 Open `http://localhost:4200`. Registration is enabled, so no shared demo password is required.
 
-### Docker Compose
-
-Copy `.env.example` to `.env`, replace every placeholder locally, then run:
-
-```powershell
-docker compose up --build
-```
-
-The combined app is exposed at `http://localhost:8080`. `.env` is ignored and must never be committed.
-
 ## Verification
 
 ```powershell
@@ -158,9 +160,21 @@ npm audit --omit=dev
 npm run e2e
 ```
 
-The backend integration tests and Playwright E2E run against SQL Server; both create and drop their own database, so a reachable SQL Server LocalDB (or a `CLOUDTRACK_TEST_SQLSERVER` / `CLOUDTRACK_E2E_SQLSERVER` override) is required.
+The backend integration tests and Playwright E2E run against SQL Server; both create and drop their own database, so a reachable SQL Server LocalDB (or a `CLOUDTRACK_TEST_SQLSERVER` / `CLOUDTRACK_E2E_SQLSERVER` override) is required. For a normal change, run the unit tests and build; reserve E2E for changes to a user journey or release verification.
 
-CI repeats these checks, starts an ephemeral SQL Server 2022 container for the test and E2E jobs, and scans the full Git history for secrets. Azure delivery builds a ZIP package and is gated by the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment.
+When GitHub Actions is enabled, CI validates the backend unit tests, generated client, frontend tests, formatting, dependency audit, and full-history secret scan. Azure delivery builds a ZIP package and is gated by the repository variable `AZURE_DEPLOY_ENABLED=true` plus an approved GitHub Environment. The same package can be deployed manually with [`scripts/deploy-local.ps1`](scripts/deploy-local.ps1).
+
+### Deployment and cost controls
+
+```mermaid
+flowchart LR
+  Source["main branch"] --> Build["Build Angular + ASP.NET Core"]
+  Build --> Zip["ZIP package"]
+  Zip --> AppService["Azure App Service"]
+  AppService --> AzureSql[("Azure SQL")]
+```
+
+The learning environment uses the F1 App Service and Azure SQL free/serverless option where available. Keep it to one App Service and one database, stop or delete unused Azure resources, and set an Azure Cost Management budget with an alert before changing tiers. Manual ZIP deployment is the supported fallback while GitHub Actions is unavailable.
 
 ## Security and configuration
 
@@ -201,7 +215,6 @@ docs/                             Architecture, operations, and interview notes
 - [Azure deployment runbook](docs/azure-deployment.md)
 - [API surface](docs/api.md)
 - [Interview notes](docs/interview-notes.md)
-- [Docker workflow](docs/docker.md)
 
 ## Planned hardening
 
