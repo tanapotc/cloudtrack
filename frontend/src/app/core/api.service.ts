@@ -82,11 +82,11 @@ export class ApiService {
     }) as Observable<WorkItemSummary>;
   }
 
-  users(search = ''): Observable<PagedResult<ManagedUserSummary>> {
+  users(search = '', page = 1, pageSize = 30): Observable<PagedResult<ManagedUserSummary>> {
     return this.adminApi.adminUsers({
       search: search || undefined,
-      page: 1,
-      pageSize: 30,
+      page,
+      pageSize,
     }) as Observable<PagedResult<ManagedUserSummary>>;
   }
 

@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ApiService } from '../../core/api.service';
@@ -22,6 +23,7 @@ import { ManagedUserSummary, PagedResult, RoleSummary } from '../../core/models'
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatPaginatorModule,
     MatProgressSpinnerModule,
     MatSlideToggleModule,
   ],
@@ -34,6 +36,9 @@ export class AdminPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   readonly mode = (this.route.snapshot.data['mode'] as 'users' | 'roles') ?? 'users';
   readonly users = signal<ManagedUserSummary[]>([]);
+  readonly userPageIndex = signal(0);
+  readonly userPageSize = signal(30);
+  readonly totalUsers = signal(0);
   readonly roles = signal<RoleSummary[]>([]);
   readonly loading = signal(true);
   readonly forbidden = signal(false);
@@ -42,7 +47,10 @@ export class AdminPage implements OnInit {
   ngOnInit(): void {
     this.load();
     this.search.valueChanges.pipe(debounceTime(250), distinctUntilChanged()).subscribe(() => {
-      if (this.mode === 'users') this.load();
+      if (this.mode === 'users') {
+        this.userPageIndex.set(0);
+        this.load();
+      }
     });
   }
   load(): void {
@@ -50,11 +58,18 @@ export class AdminPage implements OnInit {
     this.forbidden.set(false);
     this.error.set('');
     const request: Observable<PagedResult<ManagedUserSummary> | RoleSummary[]> =
-      this.mode === 'users' ? this.api.users(this.search.value) : this.api.roles();
+      this.mode === 'users'
+        ? this.api.users(this.search.value, this.userPageIndex() + 1, this.userPageSize())
+        : this.api.roles();
     request.subscribe({
       next: (data: PagedResult<ManagedUserSummary> | RoleSummary[]) => {
-        if (this.mode === 'users') this.users.set((data as PagedResult<ManagedUserSummary>).items);
-        else this.roles.set(data as RoleSummary[]);
+        if (this.mode === 'users') {
+          const result = data as PagedResult<ManagedUserSummary>;
+          this.users.set(result.items);
+          this.totalUsers.set(result.totalCount);
+          this.userPageIndex.set(Math.max(result.page - 1, 0));
+          this.userPageSize.set(result.pageSize);
+        } else this.roles.set(data as RoleSummary[]);
         this.loading.set(false);
       },
       error: (response: HttpErrorResponse) => {
@@ -72,6 +87,11 @@ export class AdminPage implements OnInit {
         ),
       error: () => this.load(),
     });
+  }
+  changeUserPage(event: PageEvent): void {
+    this.userPageIndex.set(event.pageIndex);
+    this.userPageSize.set(event.pageSize);
+    this.load();
   }
   initials(name: string): string {
     return name

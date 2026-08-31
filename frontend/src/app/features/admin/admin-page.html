@@ -31,7 +31,7 @@
     <mat-form-field appearance="outline" subscriptSizing="dynamic"
       ><mat-icon matPrefix>search</mat-icon
       ><input matInput [formControl]="search" placeholder="Search users" /></mat-form-field
-    ><span>{{ users().length }} accounts</span>
+    ><span>{{ totalUsers() }} {{ totalUsers() === 1 ? 'account' : 'accounts' }}</span>
   </div>
   <section class="table">
     <header><span>User</span><span>Role</span><span>Last active</span><span>Status</span></header>
@@ -58,6 +58,17 @@
       </article>
     }
   </section>
+  @if (totalUsers() > 0) {
+    <mat-paginator
+      class="user-paginator"
+      [length]="totalUsers()"
+      [pageIndex]="userPageIndex()"
+      [pageSize]="userPageSize()"
+      [pageSizeOptions]="[10, 20, 30, 50]"
+      aria-label="User list pagination"
+      (page)="changeUserPage($event)"
+    />
+  }
 } @else {
   <section class="role-grid">
     @for (role of roles(); track role.id) {
